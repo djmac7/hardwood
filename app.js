@@ -33,6 +33,7 @@
   const getPGames = (pid) => j(`data/pgames/${pid}.json?v=${V}`);
   const getTwoK = () => j(`data/twok.json?v=${V}`);
   const getInjuries = () => jl(`data/injuries.json`);
+  const getStatus = () => jl(`data/status.json`);
   const getOdds = () => jl(`data/odds.json`);
 
   let META, SEARCH, SMAP = {};
@@ -64,6 +65,24 @@
     if (s < 3600) return Math.max(1, Math.round(s / 60)) + "m";
     if (s < 86400) return Math.round(s / 3600) + "h";
     return Math.round(s / 86400) + "d";
+  }
+  function relTime(iso) {
+    const s = (Date.now() - new Date(iso).getTime()) / 1000;
+    if (s < 0 || s < 90) return "just now";
+    if (s < 3600) return Math.round(s / 60) + " min ago";
+    if (s < 7200) return "an hour ago";
+    if (s < 86400) return Math.round(s / 3600) + " hours ago";
+    if (s < 172800) return "yesterday";
+    return Math.round(s / 86400) + " days ago";
+  }
+  async function showDataRefreshed() {
+    try {
+      const st = await getStatus();
+      const el = document.getElementById("dataRefreshed"), txt = document.getElementById("dataRefreshedText");
+      if (!st || !st.refreshed || !el || !txt) return;
+      txt.textContent = "Live data refreshed " + relTime(st.refreshed);
+      el.hidden = false;
+    } catch (e) {}
   }
   const NEWS_DOMAIN = { "ESPN": "espn.com", "CBS Sports": "cbssports.com", "Yahoo Sports": "sports.yahoo.com",
     "Bleacher Report": "bleacherreport.com", "r/nba": "reddit.com", "Sporting News": "sportingnews.com", "The Athletic": "nytimes.com" };
@@ -1734,17 +1753,18 @@
   async function renderDraft(y) {
     const yr = +y || META.draftYears[0];
     let D; try { D = await getDraft(yr); } catch { return notFound("draft"); }
+    const hasCollege = D.picks.some((p) => p[5]);   // future/projected drafts have no college yet — hide the empty column
     app.innerHTML = `<div class="wrap page">
       <div class="crumb"><a href="#/">Home</a><span class="sep">/</span><span>Draft</span></div>
       <div class="section-title"><div><span class="eyebrow">Every pick on record</span><h2>${yr} NBA Draft</h2></div>
         <label class="season-select"><span>Draft</span><select id="draftSel">${META.draftYears.map((v) => `<option value="${v}" ${v === yr ? "selected" : ""}>${v}</option>`).join("")}</select></label></div>
-      <div class="card"><div class="tbl-wrap"><table class="ref" style="min-width:560px">
-        <thead><tr><th class="num">Pick</th><th class="num">Rd</th><th class="l">Team</th><th class="l">Player</th><th class="l grow">College / From</th></tr></thead>
+      <div class="card"><div class="tbl-wrap"><table class="ref" style="min-width:${hasCollege ? 560 : 0}px">
+        <thead><tr><th class="num">Pick</th><th class="num">Rd</th><th class="l">Team</th><th class="l${hasCollege ? "" : " grow"}">Player</th>${hasCollege ? `<th class="l grow">College / From</th>` : ""}</tr></thead>
         <tbody>${D.picks.map((p) => `<tr class="${p[3] ? "clickable" : ""}" ${p[3] ? `onclick="location.hash='#/player/${p[3]}'"` : ""}>
           <td class="num">${p[0] ?? "—"}</td><td class="num">${p[1] ?? "—"}</td>
           <td class="l">${p[2] ? teamTag(p[2], true) : "—"}</td>
-          <td class="l">${p[3] ? `<span class="who">${headshot(p[3], p[4], p[2], "xs")}<a href="#/player/${p[3]}">${esc(p[4])}</a></span>` : `<span class="muted">${esc(p[4])}</span>`}</td>
-          <td class="l muted grow">${p[5] ? esc(p[5]) : "—"}</td></tr>`).join("")}</tbody>
+          <td class="l${hasCollege ? "" : " grow"}">${p[3] ? `<span class="who">${headshot(p[3], p[4], p[2], "xs")}<a href="#/player/${p[3]}">${esc(p[4])}</a></span>` : `<span class="muted">${esc(p[4])}</span>`}</td>
+          ${hasCollege ? `<td class="l muted grow">${p[5] ? esc(p[5]) : "—"}</td>` : ""}</tr>`).join("")}</tbody>
       </table></div></div></div>`;
     $("#draftSel").addEventListener("change", (e) => (location.hash = `#/draft/${e.target.value}`));
   }
@@ -2205,6 +2225,7 @@
       }
       addEventListener("hashchange", route);
       await route();
+      showDataRefreshed();
     } catch (err) {
       app.innerHTML = `<div class="wrap page"><h2 style="font-size:26px">Couldn't load the dataset.</h2><p class="muted" style="margin-top:8px">${esc(err.message || err)}</p></div>`;
     }

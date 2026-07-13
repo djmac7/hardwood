@@ -30,6 +30,7 @@ jobs:
         run: |
           python3 build/fetch_live.py injuries odds scores standings
           python3 build/fetch_news.py
+          python3 build/write_status.py
       - name: Commit if changed
         run: |
           git config user.name  "hardwood-bot"

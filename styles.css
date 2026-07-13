@@ -1377,3 +1377,8 @@ table.ref tr.benchsep td{border-top:1px solid var(--line-strong)}
   .cmp-search{margin-left:0;flex-basis:100%;width:100%}
   .cmp-search input{width:100%}
 }
+
+/* footer "live data refreshed" indicator */
+.data-refreshed{display:flex;align-items:center;gap:7px;margin-top:10px!important}
+.data-refreshed .dr-dot{width:7px;height:7px;border-radius:50%;background:var(--accent);
+  box-shadow:0 0 0 3px var(--accent-soft);flex:none}

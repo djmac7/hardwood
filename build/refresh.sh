@@ -12,6 +12,7 @@ LOG="build/refresh.log"
 echo "=== $(date '+%Y-%m-%d %H:%M') live ===" >> "$LOG"
 $PY build/fetch_live.py injuries odds scores standings >> "$LOG" 2>&1
 $PY build/fetch_news.py >> "$LOG" 2>&1
+$PY build/write_status.py >> "$LOG" 2>&1
 
 MARK="build/.daily-stamp"
 if [ ! -f "$MARK" ] || find "$MARK" -mmin +1200 2>/dev/null | grep -q .; then
