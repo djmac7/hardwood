@@ -347,7 +347,6 @@
     app.innerHTML = `
     <section class="hero2 reveal">
       <div class="wrap">
-        <span class="eyebrow">NBA reference · 1947–${+seasonLabel(cur).slice(0, 4) + 1} · ${SEARCH.length.toLocaleString()} players · ${META.seasons.length} seasons</span>
         <h1 class="sr-only">Hardwood — NBA stats &amp; history</h1>
         <div class="mast-search hero-search">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
@@ -1807,15 +1806,18 @@
   /* ================= SEASON OVERVIEW ================= */
   async function renderSeason(y) {
     const yr = +y; let S; try { S = await getSeason(yr); } catch { return notFound("season"); }
-    const champAb = S.champion && S.champion.team, st = S.standings, top = st[0];
+    const hist = (META.history || []).find((h) => h.season === yr) || {};
+    const champAb = (S.champion && S.champion.team) || hist.champ, st = S.standings, top = st[0];
+    const champNm = (S.champion && S.champion.team) ? tName(S.champion.team) : (hist.champ_name || (hist.champ && tName(hist.champ)) || "");
+    const champFmvp = (S.champion && S.champion.fmvp) || hist.fmvp, champFmvpId = (S.champion && S.champion.fmvp_id) || hist.fmvp_id;
     app.innerHTML = `<div class="wrap page">
       <div class="crumb"><a href="#/">Home</a><span class="sep">/</span><a href="#/seasons">Seasons</a><span class="sep">/</span><span>${seasonLabel(yr)}</span></div>
       <div class="section-title"><div><span class="eyebrow">${S.lg} Season</span><h2>${seasonLabel(yr)} season</h2></div>${seasonSelect(yr, "season")}</div>
       <div class="season-top">
-        ${champAb ? `<div class="card big season-champ" style="--tc:${tColor(champAb)}">
+        ${(champAb || champNm) ? `<div class="card big season-champ" style="--tc:${champAb ? tColor(champAb) : "var(--accent)"}">
           <span class="eyebrow">Champions</span>
-          <div class="sc-team">${teamLogo(champAb, "hero")}<div><h3><a href="#/team/${champAb}">${esc(tName(champAb))}</a></h3>
-            ${S.champion.fmvp ? `<div class="sub">Finals MVP · <a href="#/player/${S.champion.fmvp_id}">${esc(S.champion.fmvp)}</a></div>` : ""}</div></div></div>` : ""}
+          <div class="sc-team">${champAb ? teamLogo(champAb, "hero") : ""}<div><h3>${champAb ? `<a href="#/team/${champAb}">${esc(champNm)}</a>` : esc(champNm)}</h3>
+            ${champFmvp ? `<div class="sub">Finals MVP · <a href="#/player/${champFmvpId}">${esc(champFmvp)}</a></div>` : ""}</div></div></div>` : ""}
         ${S.mvp ? `<div class="card big pad season-mvp"><span class="eyebrow">Most Valuable Player</span>
           <a class="sm-link" href="#/player/${S.mvp.id}">${headshot(S.mvp.id, S.mvp.name, champAb || (top && top.abbr), "lg")}<div><div class="n">${esc(S.mvp.name)}</div></div></a></div>` : ""}
         ${top ? `<div class="card big pad season-best"><span class="eyebrow">Best record</span>
@@ -1863,7 +1865,7 @@
         <thead><tr><th class="l">Season</th><th class="l">Champion</th><th class="l">Finals MVP</th><th class="l">MVP</th><th class="l">Rookie of Year</th><th class="l">Defensive POY</th><th class="l">Scoring</th></tr></thead>
         <tbody>${META.history.map((h) => { const pl = (id, nm) => (nm ? `<a href="#/player/${id}">${esc(nm)}</a>` : "—"); return `<tr onclick="location.hash='#/season/${h.season}'" style="cursor:pointer">
           <td class="l season">${seasonLabel(h.season)}</td>
-          <td class="l">${h.champ ? `<span class="tm-tag">${teamLogo(h.champ, "xs")}${esc(tName(h.champ))}</span>` : "—"}</td>
+          <td class="l">${(h.champ || h.champ_name) ? `<span class="tm-tag">${h.champ ? teamLogo(h.champ, "xs") : ""}${esc(h.champ_name || tName(h.champ))}</span>` : "—"}</td>
           <td class="l">${pl(h.fmvp_id, h.fmvp)}</td>
           <td class="l">${pl(h.mvp_id, h.mvp)}</td>
           <td class="l">${pl(h.roy_id, h.roy)}</td>

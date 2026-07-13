@@ -26,6 +26,7 @@ jobs:
       - name: Fetch rosters / contracts / draft
         run: |
           python3 build/fetch_live.py rosters contracts draft
+          python3 build/fill_history.py
           python3 build/write_status.py
       - name: Commit if changed
         run: |
