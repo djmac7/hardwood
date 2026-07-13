@@ -1,0 +1,37 @@
+name: Deploy to GitHub Pages
+
+# Publishes the static site to GitHub Pages via the Actions artifact path
+# (the legacy Jekyll builder can't handle this many files). Runs on every push
+# to main — including the automated data-refresh commits — so the live site
+# always reflects the latest data.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Drop non-site files
+        run: rm -rf .git .github build scratchpad
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+      - id: deployment
+        uses: actions/deploy-pages@v4
