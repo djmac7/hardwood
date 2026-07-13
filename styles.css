@@ -1283,3 +1283,13 @@ table.ref tr.benchsep td{border-top:1px solid var(--line-strong)}
   .topbar{backdrop-filter:none;-webkit-backdrop-filter:none;background:var(--bg)}
   .jumpnav{backdrop-filter:none;-webkit-backdrop-filter:none;background:color-mix(in srgb,var(--bg) 97%,transparent)}
 }
+
+/* ---- home: tighten vertical rhythm so there's no dead band on phones ---- */
+@media (max-width:640px){
+  section{padding:30px 0}
+  .hero2{padding:20px 0 20px}
+  .home-scores{padding-top:22px}
+  .trend-strip{margin-top:22px}
+  /* nudge the smallest mono labels up a hair for legibility on small screens */
+  .tile .k,.bio .k,.thead .meta .k,.mm-label{font-size:10.5px}
+}
