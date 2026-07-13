@@ -585,26 +585,32 @@
   // Launcher hub — restrained, editorial: monogram marks, one accent, no clutter.
   async function renderPlay() {
     setSEO("Arcade — NBA Games & Puzzles", "NBA games and puzzles: the Daily NBA Grid, Stat Duel, Buzzer Beater and Six Spins.");
+    // Line-icon marks give each game its own identity (was a generic monogram avatar).
+    const ICON = {
+      grid: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><rect x="3.5" y="3.5" width="17" height="17" rx="3"/><path d="M9 3.5v17M15 3.5v17M3.5 9h17M3.5 15h17"/></svg>`,
+      duel: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 20V6m0 0L4 9.5M7.5 6 11 9.5M16.5 4v14m0 0L13 14.5M16.5 18 20 14.5"/></svg>`,
+      buzzer: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5v17M6 6c3.2 2.8 3.2 9.2 0 12M18 6c-3.2 2.8-3.2 9.2 0 12" stroke-width="1.5"/></svg>`,
+      spin: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 12a8.5 8.5 0 1 1-2.4-5.9"/><path d="M20.5 4.5v4h-4"/></svg>`,
+    };
     const games = [
-      { t: "Daily NBA Grid", d: "Fill every square with a player who suited up for both teams. New board every day.", tag: "New board daily", href: "#/play/grid", live: true },
-      { t: "Stat Duel", d: "Higher or lower — pick the player with the bigger career number. Build a streak.", tag: "Endless", href: "#/play/duel", live: true },
-      { t: "Buzzer Beater", d: "Time your release in the sweet spot and sink as many as you can before the miss meter fills.", tag: "Arcade", href: "#/play/buzzer" },
-      { t: "Six Spins", d: "A continuous build — keep spinning to draft attributes toward a 99-overall player.", tag: "Continuous", href: "#/play/sixspins" },
+      { t: "Six Spins", d: "A continuous build — keep spinning to draft attributes toward a 99-overall player.", tag: "Continuous", href: "#/play/sixspins", ic: ICON.spin, live: true },
+      { t: "Daily NBA Grid", d: "Fill every square with a player who suited up for both teams. New board every day.", tag: "New board daily", href: "#/play/grid", ic: ICON.grid, live: true },
+      { t: "Stat Duel", d: "Higher or lower — pick the player with the bigger career number. Build a streak.", tag: "Endless", href: "#/play/duel", ic: ICON.duel, live: true },
+      { t: "Buzzer Beater", d: "Time your release in the sweet spot and sink as many as you can before the miss meter fills.", tag: "Arcade", href: "#/play/buzzer", ic: ICON.buzzer },
     ];
-    const mono = (t) => (t.replace(/[^A-Za-z0-9 ]/g, "").split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join("") || t.slice(0, 2)).toUpperCase();
     const tile = (g) => `<a class="ptile${g.live ? " live" : ""}" href="${g.href}" ${g.ext ? 'target="_blank" rel="noopener noreferrer"' : ""}>
-      <span class="ptile-mark">${mono(g.t)}</span>
+      <span class="ptile-mark">${g.ic}</span>
       <span class="ptile-body"><span class="ptile-tag">${g.live ? '<span class="ptile-dot"></span>' : ""}${g.tag}</span><b>${esc(g.t)}</b><span class="ptile-d">${esc(g.d)}</span></span>
       <span class="ptile-go">${g.ext ? "↗" : "→"}</span></a>`;
     app.innerHTML = `<div class="wrap page">
       <div class="crumb"><a href="#/">Home</a><span class="sep">/</span><span>Arcade</span></div>
       <div class="section-title"><div><span class="eyebrow">NBA games &amp; puzzles</span><h2>Arcade</h2></div></div>
-      <a class="ss-hero" href="#/play/grid">
-        <div class="ss-hero-l"><span class="eyebrow">Featured · Daily NBA Grid</span>
-          <h3>One new grid, every day.</h3>
-          <p>Name a player who suited up for both the row's and column's team in each of the nine squares. Come back tomorrow for a fresh board — or dig through the archive.</p>
-          <span class="ss-hero-cta">Play today's grid <span>→</span></span></div>
-        <div class="ss-hero-mark"><span>NBA</span><span>GRID</span></div>
+      <a class="ss-hero" href="#/play/sixspins">
+        <div class="ss-hero-l"><span class="eyebrow">Featured · Six Spins</span>
+          <h3>Spin your way to a 99 overall.</h3>
+          <p>A continuous build — keep spinning to draft attributes and shape a 99-overall player, one wheel at a time. Plays right here on Hardwood.</p>
+          <span class="ss-hero-cta">Play Six Spins <span>→</span></span></div>
+        <div class="ss-hero-mark"><span>SIX</span><span>SPINS</span></div>
       </a>
       <div class="section-title small" style="margin-top:26px"><div><h2>All games</h2></div></div>
       <div class="ptiles">${games.map(tile).join("")}</div>

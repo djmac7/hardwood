@@ -1179,6 +1179,7 @@ table.ref tr.benchsep td{border-top:1px solid var(--line-strong)}
   font-family:var(--mono);font-weight:600;font-size:15px;letter-spacing:.02em;color:var(--ink-3);
   background:var(--panel-2);border:1px solid var(--line)}
 .ptile.live .ptile-mark{color:var(--accent-deep);background:var(--accent-wash);border-color:var(--accent-soft)}
+.ptile-mark svg{width:23px;height:23px}
 .ptile-body{flex:1;min-width:0}
 .ptile-tag{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-4)}
 .ptile-dot{width:6px;height:6px;border-radius:50%;background:var(--good);box-shadow:0 0 0 3px color-mix(in srgb,var(--good) 22%,transparent)}
