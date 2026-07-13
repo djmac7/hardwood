@@ -471,21 +471,37 @@
   }
 
   /* ================= SETTINGS ================= */
-  function renderSettings() {
-    const seg = (name, cur, opts) => `<div class="seg-toggle set-seg" data-set="${name}">${opts.map((o) => `<button data-v="${o[0]}" aria-pressed="${o[0] === cur}">${o[1]}</button>`).join("")}</div>`;
-    setSEO("Settings", "Appearance and display preferences.");
-    app.innerHTML = `<div class="wrap page" style="max-width:760px">
-      <div class="crumb"><a href="#/">Home</a><span class="sep">/</span><span>Settings</span></div>
-      <div class="section-title"><div><span class="eyebrow">Preferences</span><h2>Settings</h2></div></div>
-      <div class="card set-card">
-        <div class="set-row"><div class="set-l"><b>Appearance</b><span>Use light, dark, or match your device.</span></div>${seg("theme", themeMode(), [["system", "System"], ["light", "Light"], ["dark", "Dark"]])}</div>
-        <div class="set-row"><div class="set-l"><b>Table density</b><span>Comfortable spacing, or compact rows for more data per screen.</span></div>${seg("density", curDensity(), [["comfortable", "Comfortable"], ["compact", "Compact"]])}</div>
-      </div>
-      <p class="news-foot" style="margin-top:16px">Preferences are stored on this device only. See our <a class="link" href="#/terms">Terms of Service</a> and <a class="link" href="#/privacy">Privacy Policy</a>.</p>
-    </div>`;
-    $$('[data-set="theme"] button').forEach((b) => b.addEventListener("click", () => { applyTheme(b.dataset.v, true); $$('[data-set="theme"] button').forEach((x) => x.setAttribute("aria-pressed", String(x === b))); }));
-    $$('[data-set="density"] button').forEach((b) => b.addEventListener("click", () => { applyDensity(b.dataset.v, true); $$('[data-set="density"] button').forEach((x) => x.setAttribute("aria-pressed", String(x === b))); }));
+  /* ---------- Settings (modal overlay, not a page) ---------- */
+  let _setModal = null;
+  const _setSeg = (name, cur, opts) => `<div class="seg-toggle set-seg" data-set="${name}">${opts.map((o) => `<button data-v="${o[0]}" aria-pressed="${o[0] === cur}">${o[1]}</button>`).join("")}</div>`;
+  function _setEsc(e) { if (e.key === "Escape") closeSettings(); }
+  function openSettings() {
+    if (!_setModal) {
+      _setModal = document.createElement("div");
+      _setModal.className = "smodal"; _setModal.hidden = true;
+      document.body.appendChild(_setModal);
+      _setModal.addEventListener("click", (e) => {
+        if (e.target.closest(".smodal-backdrop") || e.target.closest(".smodal-x")) { closeSettings(); return; }
+        if (e.target.closest("a")) { closeSettings(); return; }          // let legal links navigate
+        const b = e.target.closest(".set-seg button"); if (!b) return;
+        const set = b.closest(".set-seg").dataset.set;
+        if (set === "theme") applyTheme(b.dataset.v, true); else if (set === "density") applyDensity(b.dataset.v, true);
+        b.closest(".set-seg").querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+      });
+    }
+    _setModal.innerHTML = `<div class="smodal-backdrop"></div>
+      <div class="smodal-panel" role="dialog" aria-modal="true" aria-label="Settings">
+        <div class="smodal-head"><h2>Settings</h2><button class="smodal-x" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+        <div class="set-card">
+          <div class="set-row"><div class="set-l"><b>Appearance</b><span>Light, dark, or match your device.</span></div>${_setSeg("theme", themeMode(), [["system", "System"], ["light", "Light"], ["dark", "Dark"]])}</div>
+          <div class="set-row"><div class="set-l"><b>Table density</b><span>Comfortable, or compact for more per screen.</span></div>${_setSeg("density", curDensity(), [["comfortable", "Comfortable"], ["compact", "Compact"]])}</div>
+        </div>
+        <p class="smodal-note">Stored on this device only. <a class="link" href="#/terms">Terms</a> · <a class="link" href="#/privacy">Privacy</a></p>
+      </div>`;
+    _setModal.hidden = false; document.body.classList.add("cmdk-open");
+    document.addEventListener("keydown", _setEsc);
   }
+  function closeSettings() { if (_setModal) _setModal.hidden = true; document.body.classList.remove("cmdk-open"); document.removeEventListener("keydown", _setEsc); }
 
   /* ================= LEGAL ================= */
   function legalPage(title, sub, sections) {
@@ -1984,7 +2000,7 @@
       else if (seg === "news") await renderNews();
       else if (seg === "play") await (arg === "grid" ? renderPlayGrid() : arg === "sixspins" ? renderSixSpins() : renderPlay());
       else if (seg === "betting") await renderBetting();
-      else if (seg === "settings") renderSettings();
+      else if (seg === "settings") { await renderHome(); openSettings(); }
       else if (seg === "terms") renderTerms();
       else if (seg === "privacy") renderPrivacy();
       else if (seg === "article") await renderArticle(arg);
@@ -2006,6 +2022,13 @@
   const menu = $("#mobileMenu"), menuBtn = $("#menuBtn");
   function closeMenu() { menu.hidden = true; menuBtn.setAttribute("aria-expanded", "false"); }
   menuBtn.addEventListener("click", () => { const open = menu.hidden; menu.hidden = !open; menuBtn.setAttribute("aria-expanded", String(open)); });
+  // Settings opens as a modal from anywhere (top bar, menu, footer) without navigating away.
+  document.addEventListener("click", (e) => { const s = e.target.closest("[data-settings]"); if (s) { e.preventDefault(); closeMenu(); openSettings(); } });
+  // Collapsible groups in the mobile menu (nested nav).
+  $$("#mobileMenu .mm-group").forEach((btn) => btn.addEventListener("click", () => {
+    const sub = btn.nextElementSibling, open = sub.hidden;
+    btn.setAttribute("aria-expanded", String(open)); sub.hidden = !open;
+  }));
 
   /* ---------- "More" nav dropdown ---------- */
   const moreBtn = $("#moreBtn"), moreMenu = $("#moreMenu");

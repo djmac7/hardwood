@@ -28,7 +28,7 @@
 <link rel="stylesheet" href="ds/tokens.css" />
 <!-- apply saved appearance before first paint (no flash of wrong theme) -->
 <script>try{var t=localStorage.getItem('hw-theme');if(t&&t!=='system')document.documentElement.setAttribute('data-theme',t);if(localStorage.getItem('hw-density')==='compact')document.documentElement.setAttribute('data-density','compact');}catch(e){}</script>
-<link rel="stylesheet" href="styles.css?v=66" />
+<link rel="stylesheet" href="styles.css?v=67" />
 </head>
 <body>
 
@@ -67,9 +67,9 @@
       <kbd class="kbd-hint" id="cmdkBtn" title="Command menu (⌘K)">⌘K</kbd>
       <div class="results" id="topResults"></div>
     </div>
-    <a class="icon-btn" href="#/settings" aria-label="Settings" title="Settings">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3M12 18.5v3M4.6 6.8l2.6 1.5M16.8 15.7l2.6 1.5M4.6 17.2l2.6-1.5M16.8 8.3l2.6-1.5"/></svg>
-    </a>
+    <button class="icon-btn" id="settingsBtn" data-settings aria-label="Settings" title="Settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h9M17 8h3M4 16h3M11 16h9"/><circle cx="15" cy="8" r="2.4"/><circle cx="9" cy="16" r="2.4"/></svg>
+    </button>
     <button class="icon-btn menu-only" id="menuBtn" aria-label="Open menu" aria-expanded="false">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
     </button>
@@ -80,15 +80,24 @@
     <a href="#/games" data-route="games">Scores</a>
     <a href="#/standings" data-route="standings">Standings</a>
     <a href="#/leaders" data-route="leaders">Leaders</a>
-    <a href="#/news" data-route="news">News</a>
-    <span class="mm-label">More</span>
-    <a href="#/play" data-route="play">Play ✦</a>
-    <a href="#/betting" data-route="betting">Betting</a>
-    <a href="#/seasons" data-route="seasons">Seasons</a>
-    <a href="#/awards" data-route="awards">Awards</a>
-    <a href="#/draft" data-route="seasons">Draft</a>
-    <a href="#/salaries" data-route="salaries">Salaries</a>
-    <a href="#/settings" data-route="settings">Settings</a>
+    <button class="mm-group" type="button" aria-expanded="false">History
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+    </button>
+    <div class="mm-sub" hidden>
+      <a href="#/seasons" data-route="seasons">Seasons</a>
+      <a href="#/awards" data-route="awards">Awards</a>
+      <a href="#/draft" data-route="seasons">Draft</a>
+      <a href="#/salaries" data-route="salaries">Salaries</a>
+    </div>
+    <button class="mm-group" type="button" aria-expanded="false">Play &amp; more
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+    </button>
+    <div class="mm-sub" hidden>
+      <a href="#/play" data-route="play">Play ✦</a>
+      <a href="#/betting" data-route="betting">Betting</a>
+      <a href="#/news" data-route="news">News</a>
+    </div>
+    <a href="#/settings" data-route="settings" data-settings>Settings</a>
   </div>
 </header>
 
@@ -100,7 +109,7 @@
       <a href="#/" class="brand"><span class="dot"></span> Hardwood</a>
       <p>A modern NBA statistical reference — every player and team, all-time leaders and standings, laid out to be read.</p>
       <p class="disc">Data spans the 1947 (BAA) through 2025-26 seasons, from public historical datasets, rounded for display. Team logos and player photos load from official league CDNs. Not affiliated with the NBA.</p>
-      <p class="disc foot-legal"><a href="#/terms">Terms of Service</a> · <a href="#/privacy">Privacy Policy</a> · <a href="#/settings">Settings</a></p>
+      <p class="disc foot-legal"><a href="#/terms">Terms of Service</a> · <a href="#/privacy">Privacy Policy</a> · <a href="#/settings" data-settings>Settings</a></p>
     </div>
     <div class="foot-cols">
       <div>
@@ -123,6 +132,6 @@
 
 <div class="tt" id="tt" role="status" aria-live="polite"></div>
 
-<script src="app.js?v=66"></script>
+<script src="app.js?v=67"></script>
 </body>
 </html>

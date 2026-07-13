@@ -1298,7 +1298,7 @@ table.ref tr.benchsep td{border-top:1px solid var(--line-strong)}
    touch devices and use a near-opaque background so text stays legible. ---- */
 @media (hover:none),(pointer:coarse),(max-width:640px){
   .topbar{backdrop-filter:none;-webkit-backdrop-filter:none;background:var(--bg)}
-  .jumpnav{backdrop-filter:none;-webkit-backdrop-filter:none;background:color-mix(in srgb,var(--bg) 97%,transparent)}
+  .jumpnav{backdrop-filter:none;-webkit-backdrop-filter:none;background:var(--bg)}
 }
 
 /* ---- home: tighten vertical rhythm so there's no dead band on phones ---- */
@@ -1317,3 +1317,43 @@ table.ref tr.benchsep td{border-top:1px solid var(--line-strong)}
   .gleaders{grid-template-columns:1fr}
   .gleaders .gl .who2 .nm{font-size:14px}
 }
+
+/* Teams index: compact rows on phones so you can scan all 30 without endless
+   scrolling (the default cards use a large logo + heavy padding = very sparse). */
+@media (max-width:640px){
+  .tcards{grid-template-columns:1fr;gap:8px}
+  .tcard{padding:10px 13px;gap:12px;border-radius:12px}
+  .tcard .ava.lg{width:42px;height:42px;border-radius:11px}
+  .tcard .nm{font-size:15px}
+  .tcard .rec{font-size:12px;margin-top:2px}
+}
+
+/* ---------------- Settings modal ---------------- */
+.smodal[hidden]{display:none}
+.smodal{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;padding:20px}
+.smodal-backdrop{position:absolute;inset:0;background:color-mix(in srgb,var(--bg-sunk) 62%,transparent);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+.smodal-panel{position:relative;width:min(440px,100%);background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:0 24px 70px rgba(0,0,0,.42);padding:22px 22px 18px;max-height:88vh;overflow-y:auto}
+.smodal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.smodal-head h2{font-size:20px;letter-spacing:-.02em}
+.smodal-x{background:none;border:0;color:var(--ink-3);cursor:pointer;width:34px;height:34px;display:grid;place-items:center;border-radius:9px;transition:.14s}
+.smodal-x:hover{background:var(--panel-2);color:var(--ink)}
+.smodal-x svg{width:18px;height:18px}
+.smodal .set-card{border:1px solid var(--line);border-radius:12px}
+.smodal .set-row{padding:16px 16px}
+.smodal-note{font-family:var(--mono);font-size:11px;color:var(--ink-3);margin:14px 2px 0;text-align:center}
+@media (max-width:560px){
+  .smodal{align-items:flex-end;padding:0}
+  .smodal-panel{width:100%;max-width:none;border-radius:18px 18px 0 0;border-bottom:0;padding:20px 18px calc(24px + env(safe-area-inset-bottom,0px))}
+}
+
+/* ---- nested mobile menu (collapsible groups) ---- */
+.mobile-menu .mm-group{display:flex;align-items:center;justify-content:space-between;width:100%;
+  padding:14px 24px;background:none;border:0;border-bottom:1px solid var(--line-soft);
+  font-family:var(--sans);font-size:15px;font-weight:600;color:var(--ink-2);cursor:pointer;text-align:left}
+.mobile-menu .mm-group svg{width:16px;height:16px;transition:transform .2s;color:var(--ink-3)}
+.mobile-menu .mm-group[aria-expanded="true"] svg{transform:rotate(180deg)}
+.mobile-menu .mm-group[aria-expanded="true"]{color:var(--ink)}
+.mobile-menu .mm-sub[hidden]{display:none}
+.mobile-menu .mm-sub{background:var(--bg-sunk)}
+.mobile-menu .mm-sub a{padding-left:40px;font-size:14.5px;font-weight:500;color:var(--ink-3)}
+.mobile-menu .mm-sub a.on{color:var(--accent-deep)}
