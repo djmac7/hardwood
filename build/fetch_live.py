@@ -135,6 +135,7 @@ def rosters():
     trades / signings). Stats come from each player's own cur line; unmatched
     incomers (rookies not yet in the historical set) are skipped."""
     search = json.load(open(os.path.join(DATA, "search.json")))
+    meta_cur = json.load(open(os.path.join(DATA, "meta.json")))["current"]
     idx, pid2name = {}, {}
     for e in search:
         idx.setdefault(norm(e[1]), []).append(((e[3] or 0), e[0])); pid2name[e[0]] = e[1]
@@ -163,6 +164,13 @@ def rosters():
             pos = (a.get("position") or {}).get("abbreviation", "") or ""
             c = cur(pid)
             roster.append([pid, pid2name.get(pid, a.get("fullName")), pos, c.get("g"), c.get("pts"), c.get("trb"), c.get("ast")])
+            # keep the player's own current team in sync with the live roster, so a
+            # traded player's masthead reflects his new team (not last season's).
+            pf = os.path.join(DATA, "player", f"{pid}.json")
+            if c.get("season") == meta_cur and c.get("team") != ab and os.path.exists(pf):
+                pj = json.load(open(pf)); pj.setdefault("cur", {})["team"] = ab
+                json.dump(pj, open(pf, "w"), separators=(",", ":"), ensure_ascii=False)
+                pcache[pid] = pj["cur"]
         if not roster:
             continue
         roster.sort(key=lambda x: (x[4] is None, -(x[4] or 0)))
@@ -268,8 +276,44 @@ def standings():
         print(f"standings: created new season {season} with {len(std)} teams")
 
 
+# In the offseason ESPN's /injuries feed is dominated by transaction / draft / rest
+# blurbs it defaults to "Day-To-Day" — notes that have nothing to do with an injury.
+# Keep only players genuinely sidelined by injury, normalise the status to "Out", and
+# tag the injury type. (Mirrored in build/clean_offseason_data.py.)
+_SIDELINED = ["miss the remainder", "season-ending", "season ending", "out for the season",
+              "remainder of the 2025-26", "remainder of the season", "torn", "ruptured",
+              "tearing", "lisfranc", "sesamoid", "venous condition", "will require surgery",
+              "undergo surgery", "underwent surgery", "undergoing surgery", "set to undergo",
+              "ruled out for the"]
+_BODY = ["acl", "achilles", "patellar tendon", "patellar", "ucl", "lisfranc", "hamstring",
+         "knee", "ankle", "wrist", "forearm", "thumb", "finger", "foot", "calf", "hip",
+         "back", "shoulder", "elbow", "quad", "neck", "oblique", "groin", "toe", "heel"]
+
+
+def _is_injury(note, status):
+    n = (note or "").lower()
+    if "not injury related" in n:
+        return False
+    if (status or "") == "Out":
+        return True
+    return any(s in n for s in _SIDELINED)
+
+
+def _injury_type(note):
+    m = re.match(r"^[^()]+\(([^)]+)\)", note or "")
+    tag = (m.group(1).strip().lower() if m else "")
+    if tag and tag.split()[0] in _BODY:
+        return tag.upper() if tag in ("acl", "ucl") else tag.title()
+    n = (note or "").lower()
+    for b in _BODY:
+        if re.search(r"\b" + re.escape(b) + r"\b", n):
+            return b.upper() if b in ("acl", "ucl") else b.title()
+    return "Injury"
+
+
 def injuries():
-    """Current injury report from ESPN -> data/injuries.json (by player + by team)."""
+    """Current injury report from ESPN -> data/injuries.json (by player + by team).
+    Filtered to genuine injuries only; see _is_injury above."""
     meta = json.load(open(os.path.join(DATA, "meta.json")))
     name2ab = {v.get("full"): k for k, v in meta["teams"].items()}
     idx = name_index()
@@ -282,10 +326,12 @@ def injuries():
             nm = (inj.get("athlete") or {}).get("displayName") or ""
             if not nm:
                 continue
+            note = (inj.get("shortComment") or (inj.get("type") or {}).get("description") or "").strip()
+            if not _is_injury(note, inj.get("status")):
+                continue
             n += 1
             hit = idx.get(norm(nm)); pid = hit[0][1] if hit else None
-            note = (inj.get("shortComment") or (inj.get("type") or {}).get("description") or "").strip()
-            rec = {"status": inj.get("status"), "note": note[:180], "date": (inj.get("date") or "")[:10]}
+            rec = {"status": "Out", "injury": _injury_type(note), "note": note[:180], "date": (inj.get("date") or "")[:10]}
             if pid:
                 by_player[pid] = dict(rec, team=ab)
             if ab:
@@ -293,7 +339,7 @@ def injuries():
     out = {"count": n, "byPlayer": by_player, "byTeam": by_team}
     with open(os.path.join(DATA, "injuries.json"), "w") as f:
         json.dump(out, f, separators=(",", ":"), ensure_ascii=False)
-    print(f"injuries: {n} entries · {len(by_player)} matched to players · {len(by_team)} teams")
+    print(f"injuries: {n} genuine injuries · {len(by_player)} matched to players · {len(by_team)} teams")
 
 
 def odds():

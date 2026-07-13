@@ -494,6 +494,15 @@ for ab, (city, name, conf, color, code) in TEAMS.items():
 # names/colors for every historical abbr (for tags), current ones override
 names = {ab: name_for_abbr.get(ab, ab) for ab in all_abbr}
 for ab in TEAMS: names[ab] = teams_meta[ab]["full"]
+# former-franchise logos (NOH, SEA, VAN, …): basketball-reference hosts period,
+# season-specific marks; use each franchise's final season. Current teams keep ESPN.
+BBREF_LOGO = "https://cdn.ssref.net/req/1/tlogo/bbr/{}-{}.png"
+last_by_abbr = {}
+for ab in all_abbr:
+    ts = tsum[(tsum.abbreviation == ab) & (tsum.team != "League Average")]
+    if len(ts): last_by_abbr[ab] = int(ts.season.max())
+hist_logos = {ab: BBREF_LOGO.format(ab, last_by_abbr[ab])
+              for ab in all_abbr if ab not in TEAMS and ab in last_by_abbr}
 
 # champion + mvp history (from the season files we just wrote) for fast browsing
 def winner_by_season(award):
@@ -519,6 +528,7 @@ write(f"{OUT}/meta.json", {
     "current": int(CUR_SEASON),
     "teams": teams_meta,          # current franchises w/ logos+colors
     "names": names,               # abbr -> display name (all eras)
+    "histLogos": hist_logos,      # former franchises -> period logo (bbref)
     "history": history,           # per-season champ/mvp/scoring-leader
     "draftYears": draft_years,
     "headshotBase": "https://cdn.nba.com/headshots/nba/latest/1040x760/",

@@ -3,7 +3,10 @@
    Async data access; official-CDN logos/headshots with fallbacks.
    ============================================================ */
 (function () {
-  const V = "34";
+  const V = "36";
+  // Injury report is hidden site-wide until we have reliable, injury-specific data for
+  // every player (the ESPN feed is offseason transaction noise). Flip to true to restore.
+  const SHOW_INJURIES = false;
   const app = document.getElementById("app");
   const tt = document.getElementById("tt");
   const $ = (s, r = document) => r.querySelector(s);
@@ -166,9 +169,13 @@
 
   window.__imgfail = function (img) { img.style.display = "none"; const m = img.parentNode && img.parentNode.querySelector(".ava-mono"); if (m) m.style.opacity = 1; };
 
-  function teamLogo(ab, size = "md") {
+  function teamLogo(ab, size = "md", season) {
     const m = tMeta(ab), color = tColor(ab), mono = `<span class="ava-mono" style="background:${color};color:${textOn(color)}">${esc(ab)}</span>`;
-    if (m && m.logo) return `<span class="ava logo ${size}"><img src="${m.logo}" alt="" loading="lazy" onerror="__imgfail(this)"><span class="ava-mono" style="opacity:0;background:${color};color:${textOn(color)}">${esc(ab)}</span></span>`;
+    // current franchises use their ESPN logo; defunct/former franchises (NOH, SEA, …)
+    // use their period logo from basketball-reference, season-specific when we know it.
+    let url = (m && m.logo) || (META.histLogos && META.histLogos[ab]) || null;
+    if (url && season && !(m && m.logo)) url = url.replace(/-\d+\.png$/, `-${season}.png`);
+    if (url) return `<span class="ava logo ${size}"><img src="${url}" alt="" loading="lazy" onerror="__imgfail(this)"><span class="ava-mono" style="opacity:0;background:${color};color:${textOn(color)}">${esc(ab)}</span></span>`;
     return `<span class="ava logo ${size}">${mono}</span>`;
   }
   function headshot(id, name, team, size = "md") {
@@ -437,7 +444,7 @@
   async function renderBetting() {
     let gidx; try { gidx = await getGamesIdx(META.current); } catch { return notFound("games"); }
     const S = await getSeason(META.current).catch(() => null);
-    const injD = await getInjuries().catch(() => null);
+    const injD = SHOW_INJURIES ? await getInjuries().catch(() => null) : null;
     const oddsD = await getOdds().catch(() => null);
     const byTeam = (injD && injD.byTeam) || {}, byPlayer = (injD && injD.byPlayer) || {};
     const oddsBy = (oddsD && oddsD.byGame) || {}, oddsBook = (oddsD && oddsD.book) || "";
@@ -851,6 +858,9 @@
     const wd = WD[new Date(Date.UTC(y, m - 1, day)).getUTCDay()];
     return `${wd}, ${MO[m - 1]} ${day}${withYear ? ", " + y : ""}`;
   }
+  // NBA season a calendar date belongs to: Oct–Jun of season Y spans (Y-1)→Y, so
+  // any date from Aug onward counts toward next year's season (offseason is Jul–Sep).
+  const seasonOf = (d) => { const y = +d.slice(0, 4), m = +d.slice(5, 7); return m >= 8 ? y + 1 : y; };
   const gameTypeBadge = (t, label) => label ? `<span class="gbadge po">${esc(label)}</span>` : (t && t !== "Regular Season" ? `<span class="gbadge">${esc(t)}</span>` : "");
 
   // OP.GG-style match row: dense, winner-emphasised, score-share bar + a
@@ -916,6 +926,36 @@
       io.observe(more);
     }
     const gs = $("#gmSeasonSel"); if (gs) gs.addEventListener("change", () => (location.hash = `#/games/${gs.value}`));
+  }
+
+  // Scores feed filtered to a single player: their stored game rows (most recent ~100),
+  // resolved against the season index so every row matches the main Scores styling.
+  async function renderPlayerGames(pid) {
+    let p; try { p = await getPlayer(pid); } catch { return notFound("player"); }
+    let pg; try { pg = await getPGames(pid); } catch { pg = null; }
+    pg = (pg || []).slice();
+    const seasons = [...new Set(pg.map((r) => seasonOf(r.date)))];
+    const idxs = await Promise.all(seasons.map((s) => getGamesIdx(s).catch(() => null)));
+    const byId = {};
+    idxs.forEach((idx) => { if (idx && idx.games) idx.games.forEach((g) => { byId[String(g.id)] = g; }); });
+    const games = pg.map((r) => byId[String(r.id)]).filter(Boolean)
+      .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+    const byDate = [], seen = {};
+    for (const g of games) { if (!seen[g.date]) { seen[g.date] = []; byDate.push([g.date, seen[g.date]]); } seen[g.date].push(g); }
+    const dayHtml = ([date, gs2]) => `<div class="gday"><h3 class="gday-h">${fmtDate(date, true)}<span class="gday-n">${gs2.length} game${gs2.length > 1 ? "s" : ""}</span></h3>
+      <div class="mfeed">${gs2.map(matchRow).join("")}</div></div>`;
+    const span = games.length ? (() => { const a = seasonOf(games[games.length - 1].date), b = seasonOf(games[0].date); return a === b ? seasonLabel(a) : `${seasonLabel(a)} – ${seasonLabel(b)}`; })() : "";
+    setSEO(`${p.name} — Game Log & Scores`, `Every recent game ${p.name} appeared in: final scores, competitiveness and box-score links.`);
+    app.innerHTML = `<div class="wrap page">
+      <div class="crumb"><a href="#/">Home</a><span class="sep">/</span><a href="#/games">Scores</a><span class="sep">/</span><span>${esc(p.name)}</span></div>
+      <div class="section-title"><div><span class="eyebrow">${games.length} game${games.length === 1 ? "" : "s"}${span ? " · " + span : ""}</span><h2>${esc(p.name)} · Games</h2></div>
+        <a class="link" href="#/player/${pid}">Player page →</a></div>
+      <div class="pg-filter">${headshot(p.id, p.name, p.cur.team, "xs")}<span>Filtered to games <b>${esc(p.name)}</b> appeared in</span><a class="link" href="#/games">Clear filter ✕</a></div>
+      ${games.length ? `<div class="slate-legend"><span class="ll">Game quality</span><span><i class="lg clutch"></i>Clutch ≤3</span><span><i class="lg close"></i>Close ≤8</span><span><i class="lg blowout"></i>Blowout ≥20</span></div>
+      <div id="gmFeed">${byDate.map(dayHtml).join("")}</div>
+      <p class="news-foot" style="margin:14px 0 0">Showing ${p.name}'s ${pg.length} most recent stored games. <a class="link" href="#/games">View the full league scores →</a></p>`
+        : `<p class="muted" style="margin-top:20px">No game-level data on record for ${esc(p.name)}.</p>`}
+    </div>`;
   }
 
   async function renderGame(id) {
@@ -987,22 +1027,49 @@
     return `<div class="section-title" style="margin-top:26px"><div><h2>Related games</h2></div><a class="link" href="#/games/${g.season}">All ${seasonLabel(g.season)} games →</a></div><div class="rel-grid">${cards.join("")}</div>`;
   }
 
-  // recent-games feed for a player profile (returns the card only, "" if none)
+  // recent-games feed for a player profile (returns the card only, "" if none).
+  // Two views toggle in the header, mirroring the career-stats tabs: a raw Box score
+  // and an Advanced view (per-36 rates + PRA) — the only advanced cuts the per-game data supports.
   async function recentGamesCard(pid) {
     let rows; try { rows = await getPGames(pid); } catch { return ""; }
     if (!rows || !rows.length) return "";
     const N = 12, extra = rows.length > N;
-    const rowHtml = (r, i) => `<tr class="clickable${i >= N ? " gl-extra" : ""}" onclick="location.hash='#/game/${r.id}'">
-      <td class="l grow season">${fmtDate(r.date)}</td>
+    const pm = (v) => (v == null ? "—" : v > 0 ? "+" + v : v);
+    const pmCls = (v) => (v > 0 ? "pos" : v < 0 ? "neg" : "");
+    const per36 = (v, m) => (m && v != null ? Math.round((v / m) * 36) : "—");
+    const lead = (r) => `<td class="l grow season">${fmtDate(r.date, true)}</td>
       <td class="l"><span class="ha">${r.home ? "" : "@"}</span>${teamTag(r.opp)}</td>
-      <td class="l"><span class="pill ${r.w ? "w" : "l"}">${r.w ? "W" : "L"}</span> <span class="muted">${r.us}–${r.them}</span></td>
+      <td class="l"><span class="pill ${r.w ? "w" : "l"}">${r.w ? "W" : "L"}</span> <span class="muted">${r.us}–${r.them}</span></td>`;
+    const boxRow = (r, i) => `<tr class="clickable${i >= N ? " gl-extra" : ""}" onclick="location.hash='#/game/${r.id}'">${lead(r)}
       <td>${r.min ?? "—"}</td><td class="hi">${r.pts ?? "—"}</td><td>${r.reb ?? "—"}</td><td>${r.ast ?? "—"}</td>
-      <td class="${r.pm > 0 ? "pos" : r.pm < 0 ? "neg" : ""}">${r.pm == null ? "—" : r.pm > 0 ? "+" + r.pm : r.pm}</td></tr>`;
-    return `<div class="card pad" style="min-width:0"><div class="card-h"><h3>Game log</h3><span class="hint">${rows.length} games</span></div>
+      <td class="${pmCls(r.pm)}">${pm(r.pm)}</td></tr>`;
+    const advRow = (r, i) => { const pra = r.min == null ? null : (r.pts || 0) + (r.reb || 0) + (r.ast || 0);
+      return `<tr class="clickable${i >= N ? " gl-extra" : ""}" onclick="location.hash='#/game/${r.id}'">${lead(r)}
+      <td>${per36(r.pts, r.min)}</td><td>${per36(r.reb, r.min)}</td><td>${per36(r.ast, r.min)}</td><td class="hi">${pra == null ? "—" : pra}</td>
+      <td class="${pmCls(r.pm)}">${pm(r.pm)}</td></tr>`; };
+    const viewAll = `<a class="btn gl-toggle" style="margin-top:12px;width:100%;justify-content:center" href="#/games/player/${pid}">View all games <span aria-hidden="true">→</span></a>`;
+    const view = (v, head, rowFn, foot) => `<div class="gl-view" data-view="${v}"${v === "adv" ? " hidden" : ""}>
       <div class="tbl-wrap"><table class="ref gl-table${extra ? " gl-collapsed" : ""}" style="min-width:520px">
-        <thead><tr><th class="l grow">Date</th><th class="l">Opp</th><th class="l">Result</th><th>MIN</th><th>PTS</th><th>REB</th><th>AST</th><th>+/−</th></tr></thead>
-        <tbody>${rows.map(rowHtml).join("")}</tbody></table></div>
-      ${extra ? `<button class="btn gl-toggle" style="margin-top:12px;width:100%;justify-content:center" onclick="const t=this.closest('.card').querySelector('.gl-table');t.classList.toggle('gl-collapsed');this.textContent=t.classList.contains('gl-collapsed')?'Show all ${rows.length} games':'Show fewer';">Show all ${rows.length} games</button>` : ""}</div>`;
+        <thead><tr>${head}</tr></thead><tbody>${rows.map(rowFn).join("")}</tbody></table></div>${viewAll}${foot || ""}</div>`;
+    const boxHead = `<th class="l grow">Date</th><th class="l">Opp</th><th class="l">Result</th><th>MIN</th><th>PTS</th><th>REB</th><th>AST</th><th>+/−</th>`;
+    const advHead = `<th class="l grow">Date</th><th class="l">Opp</th><th class="l">Result</th><th title="Points per 36 minutes">PTS/36</th><th title="Rebounds per 36 minutes">REB/36</th><th title="Assists per 36 minutes">AST/36</th><th title="Points + rebounds + assists">PRA</th><th>+/−</th>`;
+    const advFoot = `<p class="news-foot" style="margin:10px 0 0">Per-36 rates scale each game's line to a 36-minute pace. PRA = points + rebounds + assists.</p>`;
+    return `<div class="card pad gl-card" style="min-width:0"><div class="card-h"><h3>Game log</h3>
+        <div class="tabs gl-tabs"><button data-v="box" aria-selected="true">Box score</button><button data-v="adv" aria-selected="false">Advanced</button></div></div>
+      ${view("box", boxHead, boxRow)}
+      ${view("adv", advHead, advRow, advFoot)}</div>`;
+  }
+
+  // Toggle the Game log card between its Box score / Advanced views.
+  function wireGameLog(scope) {
+    (scope || document).querySelectorAll(".gl-card").forEach((card) => {
+      const tabs = card.querySelector(".gl-tabs"); if (!tabs) return;
+      $$("button", tabs).forEach((b) => b.addEventListener("click", () => {
+        $$("button", tabs).forEach((x) => x.setAttribute("aria-selected", "false"));
+        b.setAttribute("aria-selected", "true");
+        card.querySelectorAll(".gl-view").forEach((v) => { v.hidden = v.dataset.view !== b.dataset.v; });
+      }));
+    });
   }
 
   // Prop trends (betting angle): recent PTS/REB/AST vs season average, hit-rate + sparkline.
@@ -1185,7 +1252,7 @@
     // year range on each pill and arrows to the current/most-recent team (highlighted).
     const _stints = [];
     p.log.filter((r) => isRealTeam(r[2])).forEach((r) => { const last = _stints[_stints.length - 1]; if (last && last.ab === r[2]) last.to = r[0]; else _stints.push({ ab: r[2], from: r[0], to: r[0] }); });
-    _stints.forEach((s, i) => { s.cur = i === _stints.length - 1; });
+    _stints.forEach((s, i) => { s.cur = i === _stints.length - 1 && c.season === META.current; });
     const _yr = (s) => `${s.from - 1}–${s.to === META.current ? "now" : String(s.to).slice(2)}`;
     const stintPill = (s) => `<a href="#/team/${s.ab}" class="tm-mini${s.cur ? " cur" : ""}" title="${esc(tName(s.ab))} · ${seasonLabel(s.from)} to ${seasonLabel(s.to)}">${teamLogo(s.ab, "xs")}<span class="tm-ab">${esc(s.ab)}</span><span class="tm-yrs">${_yr(s)}</span></a>`;
     const teamsStrip = _stints.length ? `<div class="tm-timeline">${_stints.map(stintPill).join('<span class="tm-arrow" aria-hidden="true">›</span>')}</div>` : "";
@@ -1270,7 +1337,7 @@
         <div class="inner">
           ${headshot(p.id, p.name, c.team, "hero")}
           <div class="ph-main">
-            <div class="pos">${esc(c.pos || b.pos || "")}</div>
+            <div class="pos">${esc(c.pos || b.pos || "")}${active && isRealTeam(c.team) ? `${(c.pos || b.pos) ? " · " : ""}<a href="#/team/${c.team}">${esc(tName(c.team))}</a>` : ""}</div>
             <h1>${esc(p.name)}</h1>
             <div class="bio">
               ${bioItem("Seasons", `${seasonLabel(b.from || p.log[0][0])} – ${seasonLabel(b.to || curSeasonNo)}`)}
@@ -1293,7 +1360,7 @@
         ${teamsStrip ? `<div class="co-row"><span class="co-lab">Career path</span>${teamsStrip}</div>` : ""}
       </div>` : ""}
 
-      <nav class="jumpnav" id="jumpNav">${[["Stats", "sec-stats"], ["Shooting", "sec-shooting"], ["2K", "sec-2k"], ["Recent", "recentForm"], ["News", "playerNews"], (salRows && salRows.length ? ["Salary", "sec-salary"] : null), ["Related", "relPlayers"]].filter(Boolean).map(([lab, t]) => `<a href="#" data-tgt="${t}">${lab}</a>`).join("")}</nav>
+      <nav class="jumpnav" id="jumpNav">${[["Stats", "sec-stats"], ["Shooting", "sec-shooting"], ["Recent", "recentForm"], (salRows && salRows.length ? ["Salary", "sec-salary"] : null), ["2K", "sec-2k"], ["News", "playerNews"], ["Related", "relPlayers"]].filter(Boolean).map(([lab, t]) => `<a href="#" data-tgt="${t}">${lab}</a>`).join("")}</nav>
 
       <div class="card pad" id="sec-stats" style="min-width:0;margin-bottom:22px">
         <div class="card-h"><div style="display:flex;align-items:baseline;gap:14px;min-width:0"><h3>Career stats</h3></div>
@@ -1318,20 +1385,18 @@
           <div class="trend" id="trend"></div>
         </div>
       </div>
-      <div id="sec-2k"></div>
-      <div class="ad-inline"><span class="lbl">Advertisement</span><div class="slot">Ad · 728×90</div></div>
       <div id="shotProfile"></div>
       <div id="recentForm"></div>
-      <div id="playerNews"></div>
-      <div id="relPlayers"></div>
+      <div class="ad-inline"><span class="lbl">Advertisement</span><div class="slot">Ad · 728×90</div></div>
       ${salRows && salRows.length ? `<div class="section-title" id="sec-salary" style="margin-top:26px"><h2>Contracts &amp; salary</h2><a class="link" href="#/salaries">Salary hub →</a></div>
         <div class="col2grid">
           <div class="card pad" style="min-width:0">
             <div class="card-h"><h3>Salary by season</h3>${CPI ? `<div class="tabs" id="pSalToggle"><button data-adj="0" aria-selected="true">Nominal</button><button data-adj="1" aria-selected="false">${seasonLabel(CPI.base)} $</button></div>` : `<span class="hint">tap a row → salaries</span>`}</div>
             <div class="tbl-wrap"><table class="ref" style="min-width:0">
               <thead><tr><th class="l grow">Season</th><th class="l">Team</th><th>Salary</th></tr></thead>
-              <tbody>${salRows.map((r) => { const tm = teamForSeason(r[0]); return `<tr class="clickable" onclick="location.hash='#/salaries/${r[0]}'"><td class="l season grow">${seasonLabel(r[0])}</td><td class="l muted">${tm ? teamTag(tm) : "—"}</td><td class="hi pSal" data-sal="${r[1]}" data-season="${r[0]}">${moneyFull(r[1])}</td></tr>`; }).join("")}
-                <tr class="total"><td class="l grow">Tracked total</td><td class="l">—</td><td class="hi pSalTotal" data-sal="${sal.careerEarn[id]}">${moneyFull(sal.careerEarn[id])}</td></tr></tbody></table></div>
+              <tbody>${salRows.map((r) => { const tm = teamForSeason(r[0]), fut = r[0] > META.current; return `<tr class="clickable${fut ? " fut-row" : ""}" onclick="location.hash='#/salaries/${r[0]}'"><td class="l season grow">${seasonLabel(r[0])}${fut ? ` <span class="fut-tag">Future</span>` : ""}</td><td class="l muted">${tm ? teamTag(tm) : "—"}</td><td class="hi pSal" data-sal="${r[1]}" data-season="${r[0]}">${moneyFull(r[1])}</td></tr>`; }).join("")}
+                <tr class="total"><td class="l grow">Tracked to date</td><td class="l">—</td><td class="hi pSalTotal" data-sal="${sal.careerEarn[id]}">${moneyFull(sal.careerEarn[id])}</td></tr></tbody></table></div>
+            ${(() => { const fut = salRows.filter((r) => r[0] > META.current); return fut.length ? `<p class="news-foot" style="border:0;margin:10px 0 0;padding:0"><span class="fut-tag">Future</span> ${fut.length} season${fut.length > 1 ? "s" : ""} still under contract — ${money(fut.reduce((a, r) => a + r[1], 0))} committed, not yet earned.</p>` : ""; })()}
           </div>
           <div class="card pad">
             <div class="card-h"><h3>Earnings</h3><span class="hint">${sal.range ? seasonLabel(sal.range[0]).slice(0, 4) + "–" + String(sal.range[1]).slice(2) : ""}</span></div>
@@ -1342,6 +1407,9 @@
             <p class="news-foot" style="border:0;margin:0;padding:0">Nominal salaries (not inflation-adjusted), merged from public open datasets. Coverage is ${sal.range ? seasonLabel(sal.range[0]) + " through " + seasonLabel(sal.range[1]) : "historical"}; the current season reflects players under contract at last update.</p>
           </div>
         </div>` : ""}
+      <div id="sec-2k"></div>
+      <div id="playerNews"></div>
+      <div id="relPlayers"></div>
     </div>`;
     // ---- SEO: title + description targeting "[player] stats / contract / salary" ----
     (function () {
@@ -1374,20 +1442,20 @@
       $$("button", pTg).forEach((x) => x.setAttribute("aria-selected", "false")); btn.setAttribute("aria-selected", "true");
       $$(".pSal").forEach((td) => { td.textContent = moneyFull(Math.round(adj ? inflate(+td.dataset.sal, +td.dataset.season) : +td.dataset.sal)); });
       const tt = $(".pSalTotal");
-      if (tt) tt.textContent = moneyFull(Math.round(salRows.reduce((s, r) => s + (adj ? inflate(r[1], r[0]) : r[1]), 0)));
+      if (tt) tt.textContent = moneyFull(Math.round(salRows.filter((r) => r[0] <= META.current).reduce((s, r) => s + (adj ? inflate(r[1], r[0]) : r[1]), 0)));
     }));
     Promise.all([recentGamesCard(id), splitsCard(id), propTrendsCard(id)]).then(([games, splits, props]) => {
       const el = $("#recentForm"); if (!el || (!games && !splits && !props)) return;
       const right = (splits || "") + (props || "");
-      el.innerHTML = `<div class="section-title" style="margin-top:26px"><div><h2>Recent form</h2></div><a class="link" href="#/games">All games →</a></div>
+      el.innerHTML = `<div class="section-title" style="margin-top:26px"><div><h2>Recent form</h2></div><a class="link" href="#/games/player/${id}">All games →</a></div>
         <div class="two-col">${games || ""}${right ? `<div class="stack">${right}</div>` : ""}</div>`;
-      wirePropTrends(el);
+      wirePropTrends(el); wireGameLog(el);
     });
     if (active) fillRanks(p);   // rank pips are current-season only
     twoKCard(id).then((html) => { const el = $("#sec-2k"); if (el && html) el.innerHTML = html; });
     wireJumpNav();
     const INJ_ICON = `<svg class="inj-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="17" height="17" rx="5"/><path d="M12 8v8M8 12h8"/></svg>`;
-    getInjuries().then((inj) => { const r = inj && inj.byPlayer && inj.byPlayer[id]; const el = $("#playerInjury"); if (el && r) el.innerHTML = `<div class="inj-badge ${r.status === "Out" ? "out" : "dtd"}">${INJ_ICON}<span class="inj-status">${esc(r.status)}</span>${r.note ? `<span class="inj-note">${esc(r.note)}</span>` : ""}</div>`; }).catch(() => {});
+    if (SHOW_INJURIES) getInjuries().then((inj) => { const r = inj && inj.byPlayer && inj.byPlayer[id]; const el = $("#playerInjury"); if (el && r) el.innerHTML = `<div class="inj-badge ${r.status === "Out" ? "out" : "dtd"}">${INJ_ICON}<span class="inj-status">${esc(r.status)}${r.injury ? ` · ${esc(r.injury)}` : ""}</span>${r.note ? `<span class="inj-note">${esc(r.note)}</span>` : ""}</div>`; }).catch(() => {});
     playerNews(id).then((html) => { const el = $("#playerNews"); if (el && html) el.innerHTML = html; });
     relatedPlayers(p).then((html) => { const el = $("#relPlayers"); if (el && html) el.innerHTML = html; });
     drawShotProfile(p);
@@ -1438,21 +1506,22 @@
       <div id="psGames"></div>
       <div class="actionbar" style="margin-top:22px"><a class="btn" href="#/player/${p.id}"><span class="ic-swap">←</span> Full career</a></div>
     </div>`;
-    // game log for this season (only built for the current season)
-    if (yr === META.current) {
-      getPGames(pid).then((rows) => {
-        if (!rows || !rows.length) return;
-        const el = $("#psGames");
-        el.innerHTML = `<div class="section-title" style="margin-top:26px"><div><h2>${seasonLabel(yr)} game log</h2></div><a class="link" href="#/games">All games →</a></div>
+    // Per-season game log, drawn from the player's stored game rows (their most recent
+    // ~100 games). Shows for any season those rows cover — not just the current one.
+    getPGames(pid).then((all) => {
+      if (!all || !all.length) return;
+      const rows = all.filter((r) => seasonOf(r.date) === yr);
+      if (!rows.length) return;
+      const el = $("#psGames");
+      el.innerHTML = `<div class="section-title" style="margin-top:26px"><div><h2>${seasonLabel(yr)} game log</h2><span class="hint">${rows.length} game${rows.length === 1 ? "" : "s"}</span></div><a class="link" href="#/games/player/${pid}">All games →</a></div>
           <div class="card"><div class="tbl-wrap"><table class="ref" style="min-width:560px">
             <thead><tr><th class="l grow">Date</th><th class="l">Opp</th><th class="l">Result</th><th>MIN</th><th>PTS</th><th>REB</th><th>AST</th><th>+/−</th></tr></thead>
             <tbody>${rows.map((r) => `<tr class="clickable" onclick="location.hash='#/game/${r.id}'">
-              <td class="l grow season">${fmtDate(r.date)}</td><td class="l"><span class="ha">${r.home ? "" : "@"}</span>${teamTag(r.opp)}</td>
+              <td class="l grow season">${fmtDate(r.date, true)}</td><td class="l"><span class="ha">${r.home ? "" : "@"}</span>${teamTag(r.opp)}</td>
               <td class="l"><span class="pill ${r.w ? "w" : "l"}">${r.w ? "W" : "L"}</span> <span class="muted">${r.us}–${r.them}</span></td>
               <td>${r.min ?? "—"}</td><td class="hi">${r.pts ?? "—"}</td><td>${r.reb ?? "—"}</td><td>${r.ast ?? "—"}</td>
               <td class="${r.pm > 0 ? "pos" : r.pm < 0 ? "neg" : ""}">${r.pm == null ? "—" : r.pm > 0 ? "+" + r.pm : r.pm}</td></tr>`).join("")}</tbody></table></div></div>`;
-      });
-    }
+    });
   }
   const bioItem = (k, v) => `<div class="b"><div class="k">${k}</div><div class="v">${v}</div></div>`;
   // accolade -> the specific seasons it was earned (for hover detail on chips)
@@ -1639,6 +1708,7 @@
     const hasPay = Object.keys(pay).length > 0;
     const m = tMeta(ab), color = tColor(ab);
     const latest = (y && t.seasons.find((s) => s.season === +y)) || t.seasons[0];   // selected season drives header/contracts
+    const rosterSeason = t.lastSeason || (t.seasons[0] && t.seasons[0].season);      // the season t.roster actually reflects
     const conf = m ? m.conf : null;
     const teamSel = `<label class="season-select"><span>Season</span><select class="mini-select" id="tmSeasonSel">${t.seasons.map((s) => `<option value="${s.season}" ${s.season === latest.season ? "selected" : ""}>${seasonLabel(s.season)}</option>`).join("")}</select></label>`;
     // contracts for the selected season (from salary data, filtered to this team)
@@ -1647,6 +1717,22 @@
     let seed = null;
     if (latest) { try { const S = await getSeason(latest.season); const cs = splitConf(S.standings); const grp = m && cs[m.conf] ? cs[m.conf] : (cs.League || []); const idx = grp.findIndex((x) => x.abbr === ab); if (idx > -1) seed = idx + 1; } catch {} }
     const net = latest && latest.o != null ? latest.o - latest.d : null;
+    // this team's full schedule + results for the selected season (games exist 1947–present)
+    let seasonGames = [];
+    if (latest) { try { const gidx = await getGamesIdx(latest.season); seasonGames = (gidx.games || []).filter((g) => g.a === ab || g.h === ab).sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0)); } catch {} }
+    const teamGameRow = (g) => {
+      const home = g.h === ab, opp = home ? g.a : g.h, us = home ? g.hs : g.as, them = home ? g.as : g.hs;
+      const played = us != null && them != null, w = played && us > them;
+      return `<tr class="clickable" onclick="location.hash='#/game/${g.id}'">
+        <td class="l grow season">${fmtDate(g.date)}</td>
+        <td class="l"><span class="ha">${home ? "" : "@"}</span>${teamTag(opp)}</td>
+        <td class="l">${played ? `<span class="pill ${w ? "w" : "l"}">${w ? "W" : "L"}</span> <span class="muted">${us}–${them}</span>` : `<span class="muted">TBD</span>`}</td>
+        <td class="l">${gameTypeBadge(g.type, g.label) || (g.type && g.type !== "Regular Season" ? `<span class="gbadge">${esc(g.type)}</span>` : "")}</td></tr>`;
+    };
+    const gamesCard = seasonGames.length ? `<div class="section-title" id="sec-games" style="margin-top:26px"><div><span class="eyebrow">${seasonGames.length} games · ${seasonLabel(latest.season)}</span><h2>Season schedule &amp; results</h2></div><a class="link" href="#/games/${latest.season}">League scores →</a></div>
+      <div class="card" style="margin-bottom:24px"><div class="tbl-wrap"><table class="ref" style="min-width:520px">
+        <thead><tr><th class="l grow">Date</th><th class="l">Opponent</th><th class="l">Result</th><th class="l">Type</th></tr></thead>
+        <tbody>${seasonGames.map(teamGameRow).join("")}</tbody></table></div></div>` : "";
     const tiles = latest ? [
       latest.o != null ? ["Offense", latest.o.toFixed(1)] : null,
       latest.d != null ? ["Defense", latest.d.toFixed(1)] : null,
@@ -1667,7 +1753,7 @@
       <div class="crumb"><a href="#/">Home</a><span class="sep">/</span><a href="#/teams">Teams</a><span class="sep">/</span><span>${esc(t.name)}</span></div>
       <div class="thead"><div class="band" style="background:${color}"></div>
         <div class="inner">
-          <div class="th-id">${teamLogo(ab, "hero")}
+          <div class="th-id">${teamLogo(ab, "hero", latest && latest.season)}
             <div><div class="pos">${conf ? conf + "ern Conference" : (latest ? latest.season >= 1971 ? "" : "" : "")}${seed ? " · " + ord(seed) + " seed" : ""}</div>
               <h1>${esc(t.name)}</h1>
               <div class="meta">${bioItem("Franchise span", `${seasonLabel(t.seasons[t.seasons.length - 1].season)} – ${seasonLabel(latest.season)}`)}
@@ -1676,18 +1762,10 @@
         </div>
       </div>
       ${tiles.length ? `<div class="tilerow">${tiles.map(([k, v]) => `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("")}</div>` : ""}
-      <nav class="jumpnav" id="jumpNav">${[(contracts.length ? ["Contracts", "sec-contracts"] : null), ["Roster & history", "sec-tables"], ["News", "teamNews"]].filter(Boolean).map(([lab, t]) => `<a href="#" data-tgt="${t}">${lab}</a>`).join("")}</nav>
-      ${contracts.length ? `<div class="section-title" id="sec-contracts" style="margin-top:26px"><div><span class="eyebrow">Nominal · ${contracts.length} on the books · ${money(payroll)} total</span><h2>${seasonLabel(latest.season)} contracts</h2></div><a class="link" href="#/salaries/${latest.season}">Salary hub →</a></div>
-        <div class="card" style="margin-bottom:24px"><div class="tbl-wrap"><table class="ref" style="min-width:420px">
-          <thead><tr><th class="num">#</th><th class="l grow">Player</th><th>Salary</th><th>% of payroll</th></tr></thead>
-          <tbody>${contracts.map((r, i) => `<tr class="${r[0] ? "clickable" : ""}" ${r[0] ? `onclick="location.hash='#/player/${r[0]}'"` : ""}>
-            <td class="num">${i + 1}</td>
-            <td class="l grow"><span class="who">${headshot(r[0], r[1], ab, "xs")}${r[0] ? `<a href="#/player/${r[0]}">${esc(r[1])}</a>` : `<span class="nm">${esc(r[1])}</span>`}</span></td>
-            <td class="hi">${moneyFull(r[3])}</td><td><span class="barpct"><i style="width:${(r[3] / (contracts[0][3] || 1)) * 100}%"></i></span>${(r[3] / payroll * 100).toFixed(1)}%</td></tr>`).join("")}
-            <tr class="total"><td></td><td class="l grow">Total payroll</td><td class="hi">${moneyFull(payroll)}</td><td>100%</td></tr></tbody></table></div></div>` : ""}
+      <nav class="jumpnav" id="jumpNav">${[["Roster", "sec-tables"], (seasonGames.length ? ["Schedule", "sec-games"] : null), (contracts.length ? ["Payroll", "sec-contracts"] : null), ["News", "teamNews"]].filter(Boolean).map(([lab, t]) => `<a href="#" data-tgt="${t}">${lab}</a>`).join("")}</nav>
       <div class="two-col" id="sec-tables">
         <div class="card pad" style="min-width:0">
-          <div class="card-h"><h3>${latest ? seasonLabel(latest.season) + " roster leaders" : "Roster"}</h3><span class="hint">per game</span></div>
+          <div class="card-h"><h3>${latest && latest.season === rosterSeason ? seasonLabel(latest.season) + " roster leaders" : seasonLabel(rosterSeason) + " roster"}</h3><span class="hint">${latest && latest.season === rosterSeason ? "per game" : "latest on record · per game"}</span></div>
           ${t.roster && t.roster.length ? `<div class="tbl-wrap"><table class="ref">
             <thead><tr><th class="l">Player</th><th class="l">Pos</th><th>GP</th><th>REB</th><th>AST</th><th>PTS</th></tr></thead>
             <tbody>${t.roster.map((r) => `<tr><td class="l"><span class="who">${headshot(r[0], r[1], ab, "xs")}<a href="#/player/${r[0]}">${esc(r[1])}</a></span></td>
@@ -1698,13 +1776,22 @@
           <div class="card-h"><h3>Franchise history</h3><span class="hint">by season${hasPay ? " · payroll ’00–20" : ""}</span></div>
           <div class="tbl-wrap"><table class="ref" style="min-width:0">
             <thead><tr><th class="l">Season</th><th>W</th><th>L</th><th>PCT</th><th>ORtg</th><th>DRtg</th>${hasPay ? "<th>Payroll</th>" : ""}<th></th></tr></thead>
-            <tbody>${t.seasons.map((s) => `<tr onclick="location.hash='#/season/${s.season}'" style="cursor:pointer">
+            <tbody>${t.seasons.map((s) => `<tr onclick="location.hash='#/team/${ab}/${s.season}'" style="cursor:pointer" title="${esc(tName(ab))} ${seasonLabel(s.season)} — schedule & results">
               <td class="l season">${seasonLabel(s.season)}</td><td>${s.w}</td><td>${s.l}</td><td>${winpct(s.w, s.l)}</td>
               <td>${s.o != null ? s.o.toFixed(1) : "—"}</td><td>${s.d != null ? s.d.toFixed(1) : "—"}</td>
               ${hasPay ? `<td>${pay[s.season] ? money(pay[s.season]) : "—"}</td>` : ""}
               <td class="l">${s.po ? '<span class="pill w">Playoffs</span>' : ""}</td></tr>`).join("")}</tbody></table></div>
         </div>
       </div>
+      ${gamesCard}
+      ${contracts.length ? `<div class="section-title" id="sec-contracts" style="margin-top:26px"><div><span class="eyebrow">Nominal · ${contracts.length} on the books · ${money(payroll)} total</span><h2>${seasonLabel(latest.season)} payroll</h2></div><a class="link" href="#/salaries/${latest.season}">Salary hub →</a></div>
+        <div class="card" style="margin-bottom:24px"><div class="tbl-wrap"><table class="ref" style="min-width:420px">
+          <thead><tr><th class="num">#</th><th class="l grow">Player</th><th>Salary</th><th>% of payroll</th></tr></thead>
+          <tbody>${contracts.map((r, i) => `<tr class="${r[0] ? "clickable" : ""}" ${r[0] ? `onclick="location.hash='#/player/${r[0]}'"` : ""}>
+            <td class="num">${i + 1}</td>
+            <td class="l grow"><span class="who">${headshot(r[0], r[1], ab, "xs")}${r[0] ? `<a href="#/player/${r[0]}">${esc(r[1])}</a>` : `<span class="nm">${esc(r[1])}</span>`}</span></td>
+            <td class="hi">${moneyFull(r[3])}</td><td><span class="barpct"><i style="width:${(r[3] / (contracts[0][3] || 1)) * 100}%"></i></span>${(r[3] / payroll * 100).toFixed(1)}%</td></tr>`).join("")}
+            <tr class="total"><td></td><td class="l grow">Total payroll</td><td class="hi">${moneyFull(payroll)}</td><td>100%</td></tr></tbody></table></div></div>` : ""}
       <div id="teamNews"></div>
     </div>`;
     const ts = $("#tmSeasonSel"); if (ts) ts.addEventListener("change", () => (location.hash = `#/team/${ab}/${ts.value}`));
@@ -2254,7 +2341,7 @@
       else if (seg === "terms") renderTerms();
       else if (seg === "privacy") renderPrivacy();
       else if (seg === "article") await renderArticle(arg);
-      else if (seg === "games") await renderGames(arg);
+      else if (seg === "games") await (arg === "player" ? renderPlayerGames(parts[2]) : renderGames(arg));
       else if (seg === "game") await renderGame(arg);
       else if (seg === "salaries") await renderSalaries(arg);
       else await renderHome();

@@ -88,8 +88,22 @@ def contracts_from_query(nd, want_500=True):
 def cur_season_entry(contract):
     return next((s for s in contract.get("seasons", []) if s.get("season") == HH), None)
 
+def fut_entries(contract):
+    """All contract years from the current season forward -> {our_season: salary}
+    (our_season = HoopsHype start-year + 1). Captures the ENTIRE remaining contract,
+    not just the current season, so the site can show future guaranteed money."""
+    out = {}
+    for s in contract.get("seasons", []):
+        hh = s.get("season")
+        if hh is None or hh < HH:
+            continue
+        sal = int(s.get("salary", 0) or 0)
+        if sal > 0:
+            out[hh + 1] = sal
+    return out
+
 TEAMID = {}
-rows = {}   # norm_name -> (canonical_name, abbr, salary)
+rows = {}   # norm_name -> (canonical_name, abbr, {our_season: salary})
 
 # ---------------- Pass 1: team pages ----------------
 print(f"Pass 1 — {len(ACTIVE_ABBR)} team pages")
@@ -100,10 +114,11 @@ for ab in ACTIVE_ABBR:
             TEAMID = build_teamid_map(nd)
         for c in contracts_from_query(nd, want_500=True):
             name = c.get("playerName", "").strip()
-            e = cur_season_entry(c)
-            if name and e and e.get("salary", 0) > 0:
-                team = TEAMID.get(str(e.get("teamID")), ab)
-                rows[norm(name)] = (name, team, int(e["salary"]))
+            ents = fut_entries(c)
+            if name and ents:
+                e = cur_season_entry(c)
+                team = TEAMID.get(str(e.get("teamID")), ab) if e else ab
+                rows[norm(name)] = (name, team, ents)
     except Exception as ex:
         print(f"  ! {ab}: {ex}")
     time.sleep(DELAY)
@@ -137,9 +152,16 @@ for i, e in enumerate(missing):
         slug_miss += 1; slugmiss_names.append(name)          # wrong slug or throttled/blocked
     else:
         cs = contracts_from_query(nd, want_500=False)
-        entry = next((cur_season_entry(c) for c in cs if cur_season_entry(c)), None)
-        if entry and entry.get("salary", 0) > 0:
-            rows[norm(name)] = (name, TEAMID.get(str(entry.get("teamID")), ""), int(entry["salary"]))
+        ents, team = {}, ""
+        for c in cs:
+            e = fut_entries(c)
+            if e:
+                ents = e
+                ce = cur_season_entry(c)
+                if ce: team = TEAMID.get(str(ce.get("teamID")), "")
+                break
+        if ents:
+            rows[norm(name)] = (name, team, ents)
             resolved += 1
         else:
             no_salary += 1; unresolved.append(name)          # real page, no current-season salary
@@ -151,10 +173,14 @@ if slugmiss_names:
     print("  slug/throttle-miss (retry later): " + ", ".join(slugmiss_names[:30]) + (" …" if len(slugmiss_names) > 30 else ""))
 
 # ---------------- write ----------------
-out_rows = sorted(([name, team, CUR, sal] for (name, team, sal) in rows.values()), key=lambda r: -r[3])
+# one row per (player, season) — full contract length, not just the current year
+out_rows = sorted(([name, team, season, sal] for (name, team, ents) in rows.values()
+                   for season, sal in ents.items()), key=lambda r: (r[0], r[2]))
 with open(OUT, "w", newline="") as f:
     w = csv.writer(f)
     w.writerow(["name", "team", "season", "salary"])
     w.writerows(out_rows)
-print(f"\nwrote {OUT}: {len(out_rows)} player salaries for {CUR-1}-{str(CUR)[2:]} (our season {CUR})")
+_players = len(rows); _seasons = sorted({r[2] for r in out_rows})
+print(f"\nwrote {OUT}: {len(out_rows)} contract-years for {_players} players "
+      f"(seasons {_seasons[0]}–{_seasons[-1]})" if out_rows else f"\nwrote {OUT}: 0 rows")
 print("next: python3 build/fetch_salaries.py && python3 build/build_seo.py")

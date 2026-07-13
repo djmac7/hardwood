@@ -185,6 +185,11 @@ table.ref td.hi{color:var(--accent-deep);font-weight:600}
 table.ref tr.total td{border-top:1px solid var(--line-strong);border-bottom:none;font-weight:600;color:var(--ink);background:color-mix(in srgb,var(--accent-wash) 55%,transparent)}
 table.ref tr.total td:first-child{font-family:var(--serif);font-size:14px}
 table.ref .season{font-weight:600;color:var(--ink)}
+/* future (not-yet-earned) contract years: muted row + a small "Future" tag */
+.fut-tag{display:inline-block;font-family:var(--mono);font-size:9px;letter-spacing:.05em;text-transform:uppercase;font-weight:600;color:var(--accent-deep);background:var(--accent-wash);border:1px solid var(--accent-soft);border-radius:5px;padding:1px 5px;vertical-align:middle}
+table.ref tr.fut-row td{color:var(--ink-3)}
+table.ref tr.fut-row td.hi{color:var(--ink-2)}
+table.ref tr.fut-row .season{color:var(--ink-2)}
 table.ref a:hover{color:var(--accent-deep)}
 /* consistent player/entity cell inside reference tables (headshot + name) */
 table.ref .who{display:inline-flex;align-items:center;gap:9px;min-width:0;vertical-align:middle}
@@ -825,6 +830,11 @@ body{ padding-left: var(--rail); padding-right: var(--rail); }
 .slate-legend i.clutch{background:var(--good)}.slate-legend i.close{background:var(--slate)}.slate-legend i.blowout{background:var(--line-strong)}
 .gday-n{font-family:var(--mono);font-size:11px;color:var(--ink-4);font-weight:400;margin-left:10px;text-transform:none;letter-spacing:0}
 .mfeed{display:flex;flex-direction:column;gap:8px}
+/* Player-filtered scores: a subtle bar naming the active filter, with a clear link */
+.pg-filter{display:flex;align-items:center;gap:11px;margin:0 0 18px;padding:9px 14px;border:1px solid var(--line);border-radius:12px;background:var(--panel);font-size:13.5px;color:var(--ink-2)}
+.pg-filter b{color:var(--ink);font-weight:600}
+.pg-filter .ava{flex:none}
+.pg-filter .link{margin-left:auto;white-space:nowrap}
 .gm-more{display:flex;justify-content:center;margin-top:16px;min-height:20px}
 .load-more{cursor:pointer}
 .load-more .muted{font-family:var(--mono);font-size:12px}
@@ -928,7 +938,9 @@ table.ref td.neg{color:var(--crit)}
 .kr .kmeta b{color:var(--ink);font-weight:600;font-size:12.5px}
 .kr .kmeta .ks{margin-left:4px}
 .kr .kmeta .kdot{margin:0 6px;opacity:.5}
-.shot-extras{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-top:20px}
+.shot-extras{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-top:20px}
+/* odd last tile fills its row rather than leaving an empty (dark) quadrant */
+.shot-extras .se:last-child:nth-child(odd){grid-column:1 / -1}
 .shot-extras .se{background:var(--panel);padding:12px 14px}
 .shot-extras .se .k{font-family:var(--mono);font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3)}
 .shot-extras .se .v{font-family:var(--serif);font-size:18px;font-weight:600;margin-top:4px}
@@ -1108,7 +1120,7 @@ table.ref tr.benchsep td{border-top:1px solid var(--line-strong)}
 .ss-hero-mark span:first-child{color:var(--accent-deep)}
 @media (max-width:600px){.ss-hero-mark{display:none}}
 
-.grid-game{display:grid;grid-template-columns:minmax(58px,86px) repeat(3,1fr);gap:8px;max-width:640px}
+.grid-game{display:grid;grid-template-columns:minmax(58px,86px) repeat(3,1fr);gap:8px;max-width:640px;margin-inline:auto}
 .gg-corner{display:grid;place-items:center;font-size:22px;opacity:.5}
 .gg-head{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:8px 4px;
   background:var(--panel-2);border:1px solid var(--line);border-radius:12px;min-height:64px}
@@ -1397,7 +1409,7 @@ table.ref tr.benchsep td{border-top:1px solid var(--line-strong)}
 /* grid corner mark (was an emoji) + scoreline */
 .gg-corner{opacity:1}
 .gg-corner-mark{font-family:var(--mono);font-size:11px;letter-spacing:.12em;font-weight:600;color:var(--ink-3)}
-.gg-scoreline{display:block;margin:0 0 16px}
+.gg-scoreline{display:block;text-align:center;margin:0 0 16px}
 
 /* grid completion / achievement screen */
 .gg-win{position:fixed;inset:0;z-index:210;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;transition:opacity .2s}
@@ -1415,7 +1427,7 @@ table.ref tr.benchsep td{border-top:1px solid var(--line-strong)}
 .gg-win-cta{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
 
 /* Stat Duel */
-.duel{max-width:640px}
+.duel{max-width:640px;margin-inline:auto}
 .duel-q{text-align:center;font-size:18px;font-weight:500;margin-bottom:18px;color:var(--ink)}
 .duel-q b{color:var(--accent-deep)}
 .duel-row{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px}
