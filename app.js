@@ -1010,25 +1010,45 @@
     let rows; try { rows = await getPGames(pid); } catch { return ""; }
     const played = (rows || []).filter((r) => r.min != null && r.pts != null);
     if (played.length < 5) return "";
+    // Interactive prop row: adjustable over/under line — bars + hit rate recompute live.
     const stat = (key, label) => {
       const vals = played.map((r) => r[key] ?? 0);
-      const line = +(vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1);
-      const l10 = vals.slice(0, 10);
-      const overL10 = l10.filter((v) => v > line).length, overAll = vals.filter((v) => v > line).length;
-      const spark = l10.slice().reverse(), mx = Math.max(...spark, 1);
-      const bars = spark.map((v) => `<span class="pt-bar${v > line ? " over" : ""}" style="height:${Math.max(10, v / mx * 100).toFixed(0)}%" title="${v}"></span>`).join("");
-      return `<div class="pt-row"><div class="pt-h"><span class="pt-lab">${label}</span><span class="pt-line">avg <b>${line}</b></span></div>
+      const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+      const line0 = Math.max(0.5, Math.round(avg * 2) / 2);
+      const spark = vals.slice(0, 10).reverse(), mx = Math.max(...spark, 1);
+      const bars = spark.map((v) => `<span class="pt-bar" data-v="${v}" style="height:${Math.max(10, v / mx * 100).toFixed(0)}%"></span>`).join("");
+      return `<div class="pt-row" data-vals="${vals.join(",")}" data-line="${line0}">
+        <div class="pt-h"><span class="pt-lab">${label}</span>
+          <div class="pt-linectl"><button class="pt-step" type="button" data-d="-0.5" aria-label="Lower line">−</button><span class="pt-line">O/U <b class="pt-lineval">${line0}</b></span><button class="pt-step" type="button" data-d="0.5" aria-label="Raise line">+</button></div></div>
         <div class="pt-spark">${bars}</div>
-        <div class="pt-hit"><b>${overL10}/10</b> over, last 10 · <span class="muted">${Math.round(overAll / vals.length * 100)}% season</span></div></div>`;
+        <div class="pt-hit"><b class="pt-over"></b> over last 10 · <span class="pt-seasonpct muted"></span> over the last ${vals.length}</div></div>`;
     };
-    // vs-opponent scoring (bettors' key matchup lookup)
+    // vs-opponent scoring — every opponent faced in the window (not a top-N slice), highest first.
     const byOpp = {};
     played.forEach((r) => { if (isRealTeam(r.opp)) (byOpp[r.opp] = byOpp[r.opp] || []).push(r); });
     const opps = Object.entries(byOpp).map(([opp, gs]) => ({ opp, n: gs.length, pts: gs.reduce((a, g) => a + (g.pts || 0), 0) / gs.length }))
-      .sort((a, b) => b.pts - a.pts).slice(0, 8);
-    const vsOpp = opps.length ? `<div class="pt-vs"><div class="pt-vs-h">Points by opponent</div><div class="pt-vs-grid">${opps.map((o) => `<a class="pt-vs-cell" href="#/team/${o.opp}">${teamLogo(o.opp, "xs")}<span class="pt-vs-pts">${one(o.pts)}</span><span class="pt-vs-n">${o.n}g</span></a>`).join("")}</div></div>` : "";
-    return `<div class="card pad" style="min-width:0"><div class="card-h"><h3>Prop trends</h3><span class="hint">vs season avg · last ${played.length}</span></div>
+      .sort((a, b) => b.pts - a.pts);
+    const vsOpp = opps.length ? `<div class="pt-vs"><div class="pt-vs-h">Points by opponent <span class="muted">· ${opps.length} teams faced</span></div><div class="pt-vs-grid">${opps.map((o) => `<a class="pt-vs-cell" href="#/team/${o.opp}">${teamLogo(o.opp, "xs")}<span class="pt-vs-pts">${one(o.pts)}</span><span class="pt-vs-n">${o.n}g</span></a>`).join("")}</div></div>` : "";
+    return `<div class="card pad" id="propTrends" style="min-width:0"><div class="card-h"><h3>Prop trends</h3><span class="hint">tap ± to set a line · last ${played.length}</span></div>
       ${stat("pts", "Points")}${stat("reb", "Rebounds")}${stat("ast", "Assists")}${vsOpp}</div>`;
+  }
+  // Wire the adjustable prop lines after the card is mounted.
+  function wirePropTrends(root) {
+    $$(".pt-row", root).forEach((row) => {
+      const vals = row.dataset.vals.split(",").map(Number);
+      let line = +row.dataset.line;
+      const lineEl = row.querySelector(".pt-lineval"), overEl = row.querySelector(".pt-over"), pctEl = row.querySelector(".pt-seasonpct");
+      const bars = $$(".pt-bar", row);
+      const recompute = () => {
+        lineEl.textContent = line;
+        bars.forEach((b) => b.classList.toggle("over", +b.dataset.v > line));
+        const l10 = vals.slice(0, 10), o10 = l10.filter((v) => v > line).length, oAll = vals.filter((v) => v > line).length;
+        overEl.textContent = `${o10}/${l10.length}`;
+        pctEl.textContent = `${Math.round(oAll / vals.length * 100)}%`;
+      };
+      $$(".pt-step", row).forEach((btn) => btn.addEventListener("click", () => { line = Math.max(0, +(line + +btn.dataset.d).toFixed(1)); recompute(); }));
+      recompute();
+    });
   }
 
   // Related internal links for a player — teammates + verified draft class.
@@ -1158,9 +1178,25 @@
     const b = p.bio, c = p.cur, col = tColor(c.team), curSeasonNo = c.season;
     const age = b.born ? curSeasonNo - (+b.born.slice(0, 4)) : null;
     const spanTeams = [...new Set(p.log.map((r) => r[2]))].filter(isRealTeam);
+    // teams strip for the masthead: current team first (marked), rest after, collapse journeymen
+    const curTeam = isRealTeam(c.team) ? c.team : (spanTeams[spanTeams.length - 1] || null);
+    const orderedTeams = curTeam ? [curTeam, ...spanTeams.filter((t) => t !== curTeam)] : spanTeams;
+    const TEAM_SHOW = 6;
+    const teamPill = (ab) => `<a href="#/team/${ab}" class="tm-mini${ab === curTeam ? " cur" : ""}" title="${esc(tName(ab))}${ab === curTeam ? " · current team" : ""}">${teamLogo(ab, "xs")}<span>${esc(ab)}</span></a>`;
+    const _shown = orderedTeams.slice(0, TEAM_SHOW), _hidden = orderedTeams.slice(TEAM_SHOW);
+    const teamsStrip = orderedTeams.length ? `<div class="tm-strip">${_shown.map(teamPill).join("")}${_hidden.length ? `<span class="tm-hidden" hidden>${_hidden.map(teamPill).join("")}</span><button class="tm-more" type="button">+${_hidden.length} more</button>` : ""}</div>` : "";
     const draft = await draftInfo(p).catch(() => null);
     const nSeasons = new Set(p.log.filter((r) => r[16] !== 2).map((r) => r[0])).size;
-    const tiles = [["PPG", one(c.pts), "pts", 1], ["RPG", one(c.trb), "trb"], ["APG", one(c.ast), "ast"], ["FG%", pctf(c.fg), "fg_percent"], ["3P%", pctf(c.tp), "x3p_percent"], ["TS%", pctf(c.ts), "ts_percent"], ["PER", one(c.per), "per"]];
+    // Active players show the current season (with league-rank pips); retired players
+    // show CAREER averages — so a retired player's headline isn't just their final season.
+    const active = c.season === META.current;
+    const cAvg = p.career || c, cTot = p.ctot || {};
+    const careerTS = cTot.pts && ((cTot.fga || 0) + (cTot.fta || 0)) ? cTot.pts / (2 * ((cTot.fga || 0) + 0.44 * (cTot.fta || 0))) : null;
+    let _mp = 0, _perW = 0; (p.adv || []).filter((r) => r[15] !== 2).forEach((r) => { const m = r[3] || 0; _mp += m; _perW += (r[4] || 0) * m; });
+    const careerPER = _mp ? _perW / _mp : null;
+    const tiles = active
+      ? [["PPG", one(c.pts), "pts", 1], ["RPG", one(c.trb), "trb"], ["APG", one(c.ast), "ast"], ["FG%", pctf(c.fg), "fg_percent"], ["3P%", pctf(c.tp), "x3p_percent"], ["TS%", pctf(c.ts), "ts_percent"], ["PER", one(c.per), "per"]]
+      : [["PPG", one(cAvg.pts), "pts", 1], ["RPG", one(cAvg.trb), "trb"], ["APG", one(cAvg.ast), "ast"], ["FG%", pctf(cAvg.fg), "fg_percent"], ["3P%", pctf(cAvg.tp), "x3p_percent"], ["TS%", pctf(careerTS), "ts_percent"], ["PER", one(careerPER), "per"]];
 
     // per-column context: scale the PTS bar to the player's own career-high season,
     // and pip the single best scoring season (turns the table into a scannable arc).
@@ -1241,13 +1277,14 @@
               ${b.college ? bioItem("College", esc(b.college)) : (b.highSchool ? bioItem("High School", esc(b.highSchool)) : "")}
             </div>
             <div class="chip-row">${p.acc.length ? p.acc.map((a) => { const d = accDetail(a.t, p.accy) || accDesc(a.t); return `<span class="chip ${a.g ? "gold" : ""} has-detail" data-acc="${esc(a.t)}" data-years="${esc(d)}">${a.g ? "★ " : ""}${esc(a.t)}</span>`; }).join("") : `<span class="muted" style="font-size:13px">${esc(p.name)} played ${p.log.length} season${p.log.length > 1 ? "s" : ""} in the ${p.log[0][1]}.</span>`}</div>
+            ${teamsStrip}
             <div id="playerInjury"></div>
           </div>
         </div>
       </div>
 
       <div class="tilerow">${tiles.map(([k, v, sk, a]) => `<div class="tile ${a ? "accent" : ""}" data-stat="${sk || ""}"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("")}
-        <div class="tile"><div class="k">Season</div><div class="v" style="font-size:22px">${seasonLabel(curSeasonNo)}</div></div></div>
+        <div class="tile"><div class="k">${active ? "Season" : "Career G"}</div><div class="v" style="font-size:22px">${active ? seasonLabel(curSeasonNo) : (cAvg.g || cTot.g || 0).toLocaleString()}</div></div></div>
 
       <nav class="jumpnav" id="jumpNav">${[["Stats", "sec-stats"], ["Shooting", "sec-shooting"], ["2K", "sec-2k"], ["Recent", "recentForm"], ["News", "playerNews"], (salRows && salRows.length ? ["Salary", "sec-salary"] : null), ["Related", "relPlayers"]].filter(Boolean).map(([lab, t]) => `<a href="#" data-tgt="${t}">${lab}</a>`).join("")}</nav>
 
@@ -1298,7 +1335,6 @@
             <p class="news-foot" style="border:0;margin:0;padding:0">Nominal salaries (not inflation-adjusted), merged from public open datasets. Coverage is ${sal.range ? seasonLabel(sal.range[0]) + " through " + seasonLabel(sal.range[1]) : "historical"}; the current season reflects players under contract at last update.</p>
           </div>
         </div>` : ""}
-      ${spanTeams.length ? `<div class="section-title" style="margin-top:26px"><h2>Teams</h2></div><div class="chip-row">${spanTeams.map((ab) => `<a href="#/team/${ab}" class="team-pill">${teamLogo(ab, "sm")} ${esc(tName(ab))}</a>`).join("")}</div>` : ""}
     </div>`;
     // ---- SEO: title + description targeting "[player] stats / contract / salary" ----
     (function () {
@@ -1338,11 +1374,14 @@
       const right = (splits || "") + (props || "");
       el.innerHTML = `<div class="section-title" style="margin-top:26px"><div><h2>Recent form</h2></div><a class="link" href="#/games">All games →</a></div>
         <div class="two-col">${games || ""}${right ? `<div class="stack">${right}</div>` : ""}</div>`;
+      wirePropTrends(el);
     });
-    fillRanks(p);
+    if (active) fillRanks(p);   // rank pips are current-season only
     twoKCard(id).then((html) => { const el = $("#sec-2k"); if (el && html) el.innerHTML = html; });
     wireJumpNav();
-    getInjuries().then((inj) => { const r = inj && inj.byPlayer && inj.byPlayer[id]; const el = $("#playerInjury"); if (el && r) el.innerHTML = `<div class="inj-badge ${r.status === "Out" ? "out" : "dtd"}"><span class="inj-status">${esc(r.status)}</span>${r.note ? `<span class="inj-note">${esc(r.note)}</span>` : ""}</div>`; }).catch(() => {});
+    $$(".tm-more", app).forEach((btn) => btn.addEventListener("click", () => { const h = btn.previousElementSibling; if (h && h.classList.contains("tm-hidden")) h.hidden = false; btn.remove(); }));
+    const INJ_ICON = `<svg class="inj-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="17" height="17" rx="5"/><path d="M12 8v8M8 12h8"/></svg>`;
+    getInjuries().then((inj) => { const r = inj && inj.byPlayer && inj.byPlayer[id]; const el = $("#playerInjury"); if (el && r) el.innerHTML = `<div class="inj-badge ${r.status === "Out" ? "out" : "dtd"}">${INJ_ICON}<span class="inj-status">${esc(r.status)}</span>${r.note ? `<span class="inj-note">${esc(r.note)}</span>` : ""}</div>`; }).catch(() => {});
     playerNews(id).then((html) => { const el = $("#playerNews"); if (el && html) el.innerHTML = html; });
     relatedPlayers(p).then((html) => { const el = $("#relPlayers"); if (el && html) el.innerHTML = html; });
     drawShotProfile(p);
@@ -1522,7 +1561,7 @@
       mount.innerHTML = `<div class="section-title" style="margin-top:26px"><div><span class="eyebrow">Frequency &amp; efficiency by distance</span><h2>Shot tendencies</h2></div>
         <label class="season-select"><span>Season</span><select class="mini-select" id="shotSeasonSel">${years.map((y) => `<option value="${y}" ${y === yr ? "selected" : ""}>${seasonLabel(y)}</option>`).join("")}</select></label></div>
         <div class="card pad shot-card">
-          <p class="shot-lead">Took the most shots <b>${top.name.toLowerCase()}</b> — ${Math.round(top.d.pct * 100)}% of attempts. On the court, darker means more frequent and the label is FG% from that range.</p>
+          <p class="shot-lead"><b>${esc(top.name)}</b> made up ${Math.round(top.d.pct * 100)}% of their attempts — more than any other range. On the court, darker means more frequent; each label is the field-goal % from that range.</p>
           <div class="shot-grid">
             <div class="shot-court-wrap">
               <div class="shot-court" id="shotCourt"></div>

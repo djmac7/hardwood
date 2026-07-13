@@ -43,7 +43,9 @@ def season_of(date):
 def num(v, cast=float):
     try: return cast(v)
     except (ValueError, TypeError): return None
-def i(v): return num(v, int)
+def i(v):
+    try: return int(round(float(v)))          # CSV mixes ints ("13") and float-strings ("3.0")
+    except (ValueError, TypeError): return None
 def keep(s): return ALL or s in SEASONS
 
 os.makedirs(os.path.join(DATA, "game"), exist_ok=True)
