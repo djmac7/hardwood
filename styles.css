@@ -923,9 +923,7 @@ table.ref td.neg{color:var(--crit)}
 .kr .kmeta b{color:var(--ink);font-weight:600;font-size:12.5px}
 .kr .kmeta .ks{margin-left:4px}
 .kr .kmeta .kdot{margin:0 6px;opacity:.5}
-.shot-extras{display:grid;grid-template-columns:1fr;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-top:20px}
-.shot-extras .se{display:flex;align-items:baseline;justify-content:space-between;gap:14px}
-.shot-extras .se .v{margin-top:0}
+.shot-extras{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-top:20px}
 .shot-extras .se{background:var(--panel);padding:12px 14px}
 .shot-extras .se .k{font-family:var(--mono);font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3)}
 .shot-extras .se .v{font-family:var(--serif);font-size:18px;font-weight:600;margin-top:4px}
@@ -1037,7 +1035,7 @@ table.ref td.peak::after{content:"";position:absolute;top:6px;right:5px;width:5p
 .gh-lead{font-family:var(--mono);font-size:11px;color:var(--ink-2);margin-top:7px;display:flex;flex-direction:column;gap:3px}
 .gh-lead b{color:var(--ink);font-weight:600}
 .gh-team:last-child .gh-lead{align-items:flex-end}
-.gleaders{display:grid;grid-template-columns:1fr;gap:1px;background:var(--line);
+.gleaders{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:1px;background:var(--line);
   border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-bottom:22px}
 .gleaders .gl{background:var(--panel);padding:13px 15px;display:flex;align-items:center;gap:11px;min-width:0;transition:background .13s;cursor:pointer}
 .gleaders .gl:hover{background:var(--panel-2)}
@@ -1316,6 +1314,10 @@ table.ref tr.benchsep td{border-top:1px solid var(--line-strong)}
 @media (max-width:640px){
   .gleaders{grid-template-columns:1fr}
   .gleaders .gl .who2 .nm{font-size:14px}
+  /* shot-extras: stack one per row as label-left / value-right on phones */
+  .shot-extras{grid-template-columns:1fr}
+  .shot-extras .se{display:flex;align-items:baseline;justify-content:space-between;gap:14px}
+  .shot-extras .se .v{margin-top:0}
 }
 
 /* Teams index: compact rows on phones so you can scan all 30 without endless
