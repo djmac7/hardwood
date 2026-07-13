@@ -235,11 +235,17 @@
     metaTag('meta[property="og:title"]', "property", "og:title", full);
     metaTag('meta[name="twitter:title"]', "name", "twitter:title", full);
     metaTag('meta[property="og:type"]', "property", "og:type", "website");
-    // canonical — mirrors the hash route so shared/bookmarked deep links resolve
+    // canonical — for indexable entities (player/team/game) point at the crawlable
+    // prerendered .html page so ranking signals consolidate there; else the SPA URL.
+    const dir = location.pathname.replace(/[^/]*$/, ""), abs = (p) => location.origin + dir + p;
+    let canHref = location.href, m; const h = location.hash;
+    if ((m = h.match(/^#\/player\/([^/?]+)/))) canHref = abs("players/" + m[1] + ".html");
+    else if ((m = h.match(/^#\/team\/([^/?]+)/))) canHref = abs("teams/" + m[1] + ".html");
+    else if ((m = h.match(/^#\/game\/([^/?]+)/))) canHref = abs("game/" + m[1] + ".html");
     let can = document.head.querySelector('link[rel="canonical"]');
     if (!can) { can = document.createElement("link"); can.rel = "canonical"; document.head.appendChild(can); }
-    can.href = location.href;
-    metaTag('meta[property="og:url"]', "property", "og:url", location.href);
+    can.href = canHref;
+    metaTag('meta[property="og:url"]', "property", "og:url", canHref);
     // structured data
     let ld = document.getElementById("ld-route");
     if (jsonld) {

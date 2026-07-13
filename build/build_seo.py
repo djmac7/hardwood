@@ -24,7 +24,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "data"
-SITE_URL = os.environ.get("SITE_URL", "").rstrip("/")  # e.g. https://hardwood.app ; empty -> relative canonicals
+# The site is served from a GitHub project-pages subpath (djmac7.github.io/hardwood),
+# so every internal link, asset and canonical must carry that base — otherwise they
+# resolve to the domain root and 404. Override BASE_PATH="" for a root/custom-domain deploy.
+BASE = os.environ.get("BASE_PATH", "/hardwood").rstrip("/")
+SITE_URL = (os.environ.get("SITE_URL") or ("https://djmac7.github.io" + BASE)).rstrip("/")
 
 # ---------- formatting helpers (mirror app.js) ----------
 def esc(s): return html.escape(str(s), quote=True)
@@ -76,18 +80,18 @@ def page(title, desc, canon, body, jsonld=None, og_type="website"):
 <meta name="twitter:title" content="{esc(title)} — Hardwood" />
 <meta name="twitter:description" content="{esc(desc)}" />
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Schibsted+Grotesk:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="/ds/tokens.css" />
-<link rel="stylesheet" href="/styles.css?v=29" />
+<link rel="stylesheet" href="{BASE}/ds/tokens.css" />
+<link rel="stylesheet" href="{BASE}/styles.css?v=100" />
 {ld}
 </head>
 <body>
 <aside class="ad-rail ad-rail-l" aria-hidden="true"><div class="slot">Ad</div></aside>
 <aside class="ad-rail ad-rail-r" aria-hidden="true"><div class="slot">Ad</div></aside>
 <header class="topbar"><div class="wrap">
-  <a href="/" class="brand"><span class="dot"></span> Hardwood</a>
+  <a href="{BASE}/" class="brand"><span class="dot"></span> Hardwood</a>
   <nav class="mainnav">
-    <a href="/#/players">Players</a><a href="/#/teams">Teams</a><a href="/#/leaders">Leaders</a>
-    <a href="/#/standings">Standings</a><a href="/#/salaries">Salaries</a>
+    <a href="{BASE}/#/players">Players</a><a href="{BASE}/#/teams">Teams</a><a href="{BASE}/#/leaders">Leaders</a>
+    <a href="{BASE}/#/standings">Standings</a><a href="{BASE}/#/salaries">Salaries</a>
   </nav>
 </div></header>
 <main id="app">{body}</main>
@@ -143,17 +147,17 @@ def render_player(p):
                     f'<tr class="total"><td>Career earnings</td><td class="hi">{money_full(SAL.get("careerEarn", {}).get(pid))}</td></tr>'
                     f'</tbody></table></div>')
 
-    team_link = (f'<a href="/teams/{esc(team)}.html">{esc(tname(team))}</a>' if is_real_team(team) else esc(team))
+    team_link = (f'<a href="{BASE}/teams/{esc(team)}.html">{esc(tname(team))}</a>' if is_real_team(team) else esc(team))
     acc_html = "".join(f'<span class="chip {"gold" if a.get("g") else ""}">{"★ " if a.get("g") else ""}{esc(a["t"])}</span>' for a in acc)
 
     body = f"""
     <div class="wrap page">
-      <nav class="crumb" aria-label="Breadcrumb"><a href="/">Home</a><span class="sep">/</span><a href="/#/players">Players</a><span class="sep">/</span><span>{esc(name)}</span></nav>
+      <nav class="crumb" aria-label="Breadcrumb"><a href="{BASE}/">Home</a><span class="sep">/</span><a href="{BASE}/#/players">Players</a><span class="sep">/</span><span>{esc(name)}</span></nav>
       <h1>{esc(name)}</h1>
       <p class="pos">{esc(pos)} · {team_link}</p>
       <p class="muted">Seasons {esc(yrs)} · {seasons} on record{' · Ht ' + esc(b['ht']) if b.get('ht') else ''}{' · b. ' + esc(b['born'][:4]) if b.get('born') else ''}</p>
       <div class="chip-row">{acc_html}</div>
-      <p style="margin:14px 0"><a class="btn" href="/#/player/{esc(pid)}">View interactive stats & charts →</a></p>
+      <p style="margin:14px 0"><a class="btn" href="{BASE}/#/player/{esc(pid)}">View interactive stats & charts →</a></p>
       <h2>Career averages</h2>
       <p><strong>{esc(career_line)}</strong> · {cr.get('g','—')} games · {pctf(cr.get('fg'))} FG% · {pctf(cr.get('tp'))} 3P%.</p>
       <h2>Stats by season — per game</h2>
@@ -186,7 +190,7 @@ def render_team(ab, t):
 
     roster = t.get("roster", [])
     r_rows = "".join(
-        f'<tr><td><a href="/players/{esc(r[0])}.html">{esc(r[1])}</a></td><td>{esc(r[2])}</td>'
+        f'<tr><td><a href="{BASE}/players/{esc(r[0])}.html">{esc(r[1])}</a></td><td>{esc(r[2])}</td>'
         f'<td>{r[3]}</td><td>{one(r[4])}</td><td>{one(r[5])}</td><td class="hi">{one(r[6])}</td></tr>'
         for r in roster)
     roster_tbl = (f'<div class="tbl-wrap"><table class="ref"><thead><tr><th>Player</th><th>Pos</th><th>GP</th>'
@@ -201,10 +205,10 @@ def render_team(ab, t):
 
     body = f"""
     <div class="wrap page">
-      <nav class="crumb" aria-label="Breadcrumb"><a href="/">Home</a><span class="sep">/</span><a href="/#/teams">Teams</a><span class="sep">/</span><span>{esc(t['name'])}</span></nav>
+      <nav class="crumb" aria-label="Breadcrumb"><a href="{BASE}/">Home</a><span class="sep">/</span><a href="{BASE}/#/teams">Teams</a><span class="sep">/</span><span>{esc(t['name'])}</span></nav>
       <h1>{esc(t['name'])}</h1>
       <p class="muted">{esc(conf + 'ern Conference' if conf else '')} · {rec}</p>
-      <p style="margin:14px 0"><a class="btn" href="/#/team/{esc(ab)}">View interactive team page →</a></p>
+      <p style="margin:14px 0"><a class="btn" href="{BASE}/#/team/{esc(ab)}">View interactive team page →</a></p>
       {'<h2>Current roster leaders</h2>' + roster_tbl if roster_tbl else ''}
       <h2>Season-by-season</h2>
       {season_tbl}
@@ -234,7 +238,7 @@ def render_game(g):
         return f"<tr><td class='l'>{esc(tname(s['abbr']))}</td>{qs}<td class='hi'>{s.get('score','—')}</td></tr>"
     def prow(p):
         nm = esc(p["name"])
-        who = f'<a href="/players/{p["pid"]}.html">{nm}</a>' if p.get("pid") else nm
+        who = f'<a href="{BASE}/players/{p["pid"]}.html">{nm}</a>' if p.get("pid") else nm
         pm = ("+" + str(p["pm"]) if (p.get("pm") or 0) > 0 else str(p["pm"])) if p.get("pm") is not None else "—"
         return (f"<tr><td class='l'>{who}</td><td>{p.get('min','—')}</td><td class='hi'>{p.get('pts','—')}</td>"
                 f"<td>{p.get('reb','—')}</td><td>{p.get('ast','—')}</td><td>{p.get('stl','—')}</td><td>{p.get('blk','—')}</td>"
@@ -250,10 +254,10 @@ def render_game(g):
             f"Full box score with quarter scores, points, rebounds, assists and plus-minus for every player.")
     body = f"""
     <div class="wrap page">
-      <nav class="crumb" aria-label="Breadcrumb"><a href="/">Home</a><span class="sep">/</span><a href="/#/games">Games</a><span class="sep">/</span><span>{esc(a['abbr'])} @ {esc(h['abbr'])}</span></nav>
+      <nav class="crumb" aria-label="Breadcrumb"><a href="{BASE}/">Home</a><span class="sep">/</span><a href="{BASE}/#/games">Games</a><span class="sep">/</span><span>{esc(a['abbr'])} @ {esc(h['abbr'])}</span></nav>
       <h1>{esc(at)} vs {esc(ht)}</h1>
       <p class="pos">{esc(dp)}{esc(lbl)} · Final: {esc(at)} {a.get('score','')}, {esc(ht)} {h.get('score','')}</p>
-      <p style="margin:14px 0"><a class="btn" href="/#/game/{esc(g['id'])}">View interactive box score →</a></p>
+      <p style="margin:14px 0"><a class="btn" href="{BASE}/#/game/{esc(g['id'])}">View interactive box score →</a></p>
       <div class="tbl-wrap"><table class="ref" style="min-width:0"><thead><tr><th class="l">Team</th>{''.join(f'<th>{c}</th>' for c in cols)}<th>T</th></tr></thead>
         <tbody>{line('away')}{line('home')}</tbody></table></div>
       {box('away')}{box('home')}

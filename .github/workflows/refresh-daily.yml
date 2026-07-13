@@ -28,11 +28,13 @@ jobs:
           python3 build/fetch_live.py rosters contracts draft
           python3 build/fill_history.py
           python3 build/write_status.py
+      - name: Rebuild prerendered SEO pages + sitemap
+        run: python3 build/build_seo.py
       - name: Commit if changed
         run: |
           git config user.name  "hardwood-bot"
           git config user.email "hardwood-bot@users.noreply.github.com"
-          git add data/
+          git add data/ players/ teams/ game/ sitemap.xml robots.txt
           if git diff --cached --quiet; then
             echo "No data changes."
           else
