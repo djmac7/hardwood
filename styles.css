@@ -1368,3 +1368,12 @@ table.ref tr.benchsep td{border-top:1px solid var(--line-strong)}
   .rank .val .mini{display:none}
   .rank .who .nm{font-size:14px}
 }
+
+/* Compare cards on phones: let the "Change…" input wrap to its own full-width
+   row so the headshot + name use the whole first row (name no longer truncates). */
+@media (max-width:700px){
+  .cmp-head{flex-wrap:wrap}
+  .cmp-id{flex:1 1 auto}
+  .cmp-search{margin-left:0;flex-basis:100%;width:100%}
+  .cmp-search input{width:100%}
+}
