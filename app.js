@@ -1238,7 +1238,7 @@
               ${b.ht ? bioItem("Ht / Wt", `${b.ht}${b.wt ? " · " + b.wt + " lb" : ""}`) : ""}
               ${age ? bioItem("Age", `${age}${b.born ? " · b. " + b.born.slice(0, 4) : ""}`) : ""}
               ${draft ? (draft.undrafted ? bioItem("Draft", "Undrafted") : bioItem("Draft", `${draft.year} · Rd ${draft.round}, Pk ${draft.overall}${isRealTeam(draft.team) ? " · " + draft.team : ""}`)) : ""}
-              ${b.college ? bioItem("College", esc(b.college)) : ""}
+              ${b.college ? bioItem("College", esc(b.college)) : (b.highSchool ? bioItem("High School", esc(b.highSchool)) : "")}
             </div>
             <div class="chip-row">${p.acc.length ? p.acc.map((a) => { const d = accDetail(a.t, p.accy) || accDesc(a.t); return `<span class="chip ${a.g ? "gold" : ""} has-detail" data-acc="${esc(a.t)}" data-years="${esc(d)}">${a.g ? "★ " : ""}${esc(a.t)}</span>`; }).join("") : `<span class="muted" style="font-size:13px">${esc(p.name)} played ${p.log.length} season${p.log.length > 1 ? "s" : ""} in the ${p.log[0][1]}.</span>`}</div>
             <div id="playerInjury"></div>
@@ -2408,6 +2408,7 @@
         ts.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " " || e.key === "/") { e.preventDefault(); cmdkOpen(); } });
         ts.addEventListener("focus", () => cmdkOpen());
       }
+      const sb = $("#searchBtn"); if (sb) sb.addEventListener("click", () => cmdkOpen());
       addEventListener("hashchange", route);
       await route();
       showDataRefreshed();

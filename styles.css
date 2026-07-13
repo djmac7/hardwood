@@ -117,7 +117,8 @@ body.cmdk-open{overflow:hidden}
   border-radius:10px;cursor:pointer;display:grid;place-items:center;transition:.15s;flex:none}
 .theme-btn:hover{color:var(--ink);border-color:var(--accent);background:var(--accent-wash)}
 .theme-btn svg{width:17px;height:17px}
-@media (max-width:1080px){.mainnav{display:none}.search{width:auto;flex:1}}
+.search-btn{display:none}
+@media (max-width:1080px){.mainnav{display:none}.search{display:none}.search-btn{display:grid}.topbar .spring{flex:1}}
 
 /* ---------------- generic layout ---------------- */
 main{min-height:70vh}
@@ -304,7 +305,7 @@ table.ref tbody tr.clickable{cursor:pointer}
 .jersey .ab{position:absolute;bottom:9px;font-family:var(--mono);font-size:11px;letter-spacing:.1em;opacity:.9}
 .phead .pos{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
 .phead h1{font-size:clamp(30px,4vw,44px);line-height:1.02;letter-spacing:-.025em;margin:6px 0 10px}
-.bio{display:flex;flex-wrap:wrap;gap:0;margin:12px 0 14px}
+.bio{display:flex;flex-wrap:wrap;gap:14px 0;margin:12px 0 14px}
 .bio .b{padding-right:18px;margin-right:18px;border-right:1px solid var(--line)}
 .bio .b:last-child{border-right:0}
 .bio .k{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
@@ -1265,7 +1266,7 @@ table.ref tr.benchsep td{border-top:1px solid var(--line-strong)}
   .phead .ava.hero,.thead .ava.hero{width:66px;height:66px;border-radius:14px}
   .phead .pos{font-size:11px}
   .phead h1{font-size:24px;line-height:1.06;margin:3px 0 9px}
-  .bio{gap:9px 16px;margin:10px 0 12px}
+  .bio{gap:15px 16px;margin:10px 0 12px}
   .bio .b{padding-right:16px;margin-right:0}
   .chip-row{gap:6px}
   .thead .inner{padding:16px}
