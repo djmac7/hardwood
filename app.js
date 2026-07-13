@@ -584,7 +584,7 @@
 
   // Launcher hub — restrained, editorial: monogram marks, one accent, no clutter.
   async function renderPlay() {
-    setSEO("Play — NBA Games & Puzzles", "NBA games and puzzles: the Daily NBA Grid, Stat Duel, Buzzer Beater and Six Spins.");
+    setSEO("Arcade — NBA Games & Puzzles", "NBA games and puzzles: the Daily NBA Grid, Stat Duel, Buzzer Beater and Six Spins.");
     const games = [
       { t: "Daily NBA Grid", d: "Fill every square with a player who suited up for both teams. New board every day.", tag: "New board daily", href: "#/play/grid", live: true },
       { t: "Stat Duel", d: "Higher or lower — pick the player with the bigger career number. Build a streak.", tag: "Endless", href: "#/play/duel", live: true },
@@ -597,8 +597,8 @@
       <span class="ptile-body"><span class="ptile-tag">${g.live ? '<span class="ptile-dot"></span>' : ""}${g.tag}</span><b>${esc(g.t)}</b><span class="ptile-d">${esc(g.d)}</span></span>
       <span class="ptile-go">${g.ext ? "↗" : "→"}</span></a>`;
     app.innerHTML = `<div class="wrap page">
-      <div class="crumb"><a href="#/">Home</a><span class="sep">/</span><span>Play</span></div>
-      <div class="section-title"><div><span class="eyebrow">NBA games &amp; puzzles</span><h2>Play</h2></div></div>
+      <div class="crumb"><a href="#/">Home</a><span class="sep">/</span><span>Arcade</span></div>
+      <div class="section-title"><div><span class="eyebrow">NBA games &amp; puzzles</span><h2>Arcade</h2></div></div>
       <a class="ss-hero" href="#/play/grid">
         <div class="ss-hero-l"><span class="eyebrow">Featured · Daily NBA Grid</span>
           <h3>One new grid, every day.</h3>
@@ -615,7 +615,7 @@
   function renderSixSpins() {
     setSEO("Six Spins — Play", "Play Six Spins — a continuous NBA game where you spin clues to build a 99-overall player.");
     app.innerHTML = `<div class="wrap page">
-      <div class="crumb"><a href="#/">Home</a><span class="sep">/</span><a href="#/play">Play</a><span class="sep">/</span><span>Six Spins</span></div>
+      <div class="crumb"><a href="#/">Home</a><span class="sep">/</span><a href="#/play">Arcade</a><span class="sep">/</span><span>Six Spins</span></div>
       <div class="section-title"><div><span class="eyebrow">Continuous build · embedded</span><h2>Six Spins</h2></div><a class="link" href="https://sixspins.com" target="_blank" rel="noopener noreferrer">Open full ↗</a></div>
       <div class="embed-frame"><iframe src="https://sixspins.com" title="Six Spins — build a 99-overall NBA player" loading="lazy" allow="fullscreen"></iframe></div>
     </div>`;
@@ -633,7 +633,7 @@
     const dayLabel = (d) => (d === dates[0] ? "Today" : fmtDate(d, true));
     setSEO("Daily NBA Grid — Play", "Name a player who played for both teams in each square. A new NBA grid every day, with a full archive.");
     app.innerHTML = `<div class="wrap page">
-      <div class="crumb"><a href="#/">Home</a><span class="sep">/</span><a href="#/play">Play</a><span class="sep">/</span><span>Daily NBA Grid</span></div>
+      <div class="crumb"><a href="#/">Home</a><span class="sep">/</span><a href="#/play">Arcade</a><span class="sep">/</span><span>Daily NBA Grid</span></div>
       <div class="section-title"><div><span class="eyebrow">${isToday ? "Today's board" : "Archive · " + fmtDate(date, true)}</span><h2>Daily NBA Grid</h2></div>
         <label class="season-select"><span>Board</span><select id="gridSel">${dates.map((d) => `<option value="${d}" ${d === date ? "selected" : ""}>${dayLabel(d)}${done.has(d) ? " ✓" : ""}</option>`).join("")}</select></label></div>
       <span class="hint gg-scoreline" id="ggScore">0 / 9 filled</span>
@@ -642,7 +642,7 @@
         ${cols.map(head).join("")}
         ${rows.map((rab) => `${head(rab)}${cols.map((cab) => `<button class="gg-cell" data-r="${rab}" data-c="${cab}" aria-label="${rab} and ${cab}"><span class="gg-plus">+</span></button>`).join("")}`).join("")}
       </div>
-      <p class="news-foot" style="margin-top:14px">Tap a square and name a player who suited up for <b>both</b> that row's and column's team (all-time). A new grid unlocks every day — past boards stay in the archive. <a class="link" href="#/play">← All games</a></p>
+      <p class="news-foot" style="margin-top:14px">Tap a square and name a player who suited up for <b>both</b> that row's and column's team (all-time). A new grid unlocks every day — past boards stay in the archive. <a class="link" href="#/play">← Arcade</a></p>
     </div>`;
     const sel = $("#gridSel");
     if (sel) sel.addEventListener("change", (e) => { const v = e.target.value; location.hash = v === dates[0] ? "#/play/grid" : "#/play/grid/" + v; });
@@ -704,7 +704,7 @@
         <p>You filled every square on the ${date === today ? "today's" : fmtDate(date, true)} board. A fresh grid unlocks each day — the archive keeps the rest.</p>
         <div class="gg-win-cta">
           <button class="btn primary" id="ggWinAnother">Play another board</button>
-          <a class="btn" href="#/play">All games</a>
+          <a class="btn" href="#/play">Arcade</a>
         </div>
       </div>`;
     document.body.appendChild(el);
@@ -736,11 +736,11 @@
       <span class="duel-tm">${esc(p[2])} · ${p[4] - 1}–${p[5]}</span>
       <span class="duel-val" aria-hidden="true">?</span></button>`;
     app.innerHTML = `<div class="wrap page">
-      <div class="crumb"><a href="#/">Home</a><span class="sep">/</span><a href="#/play">Play</a><span class="sep">/</span><span>Stat Duel</span></div>
+      <div class="crumb"><a href="#/">Home</a><span class="sep">/</span><a href="#/play">Arcade</a><span class="sep">/</span><span>Stat Duel</span></div>
       <div class="section-title"><div><span class="eyebrow">Higher or lower · career totals</span><h2>Stat Duel</h2></div>
         <span class="hint"><span id="duelStreak">0</span> streak · best <span id="duelBest">${best}</span></span></div>
       <div class="duel" id="duelArena"></div>
-      <p class="news-foot" style="margin-top:14px">Tap the player with the bigger career total. One wrong pick ends the run. <a class="link" href="#/play">← All games</a></p>
+      <p class="news-foot" style="margin-top:14px">Tap the player with the bigger career total. One wrong pick ends the run. <a class="link" href="#/play">← Arcade</a></p>
     </div>`;
     const arena = $("#duelArena");
     function draw() {
@@ -782,7 +782,7 @@
     setSEO("Buzzer Beater — Play", "Time your release in the sweet spot and sink as many NBA buckets as you can.");
     const best = +(localStorage.getItem("hw-buzzer-best") || 0);
     app.innerHTML = `<div class="wrap page">
-      <div class="crumb"><a href="#/">Home</a><span class="sep">/</span><a href="#/play">Play</a><span class="sep">/</span><span>Buzzer Beater</span></div>
+      <div class="crumb"><a href="#/">Home</a><span class="sep">/</span><a href="#/play">Arcade</a><span class="sep">/</span><span>Buzzer Beater</span></div>
       <div class="section-title"><div><span class="eyebrow">Arcade · timing</span><h2>Buzzer Beater</h2></div>
         <span class="hint"><span id="bzScore">0</span> made · best <span id="bzBest">${best}</span></span></div>
       <div class="buzzer" id="bzArena">
@@ -794,7 +794,7 @@
         <button class="btn primary bz-shoot" id="bzShoot">Shoot</button>
         <div class="bz-lives" id="bzLives"></div>
       </div>
-      <p class="news-foot" style="margin-top:14px">Tap <b>Shoot</b> (or press Space) when the marker is inside the green zone. It gets faster and tighter as you go — three misses and it's over. <a class="link" href="#/play">← All games</a></p>
+      <p class="news-foot" style="margin-top:14px">Tap <b>Shoot</b> (or press Space) when the marker is inside the green zone. It gets faster and tighter as you go — three misses and it's over. <a class="link" href="#/play">← Arcade</a></p>
     </div>`;
     const marker = $("#bzMarker"), zoneEl = $("#bzZone"), ball = $("#bzBall"), livesEl = $("#bzLives");
     let pos = 0, dir = 1, spd = 0.85, zone = 0.26, score = 0, misses = 0, over = false, raf = 0, last = performance.now();
@@ -2427,6 +2427,7 @@
       { k: "nav", label: "Salaries", sub: "Contracts & earnings", hash: "#/salaries" },
       { k: "nav", label: "Draft", sub: "Draft classes", hash: "#/draft" },
       { k: "nav", label: "Compare players", sub: "Head to head", hash: "#/compare" },
+      { k: "nav", label: "Arcade", sub: "NBA games & puzzles", hash: "#/play" },
       { k: "act", label: "Toggle theme", sub: "Light / dark", act: "theme" },
       { k: "act", label: "Toggle table density", sub: "Comfortable / compact", act: "density" },
     ];

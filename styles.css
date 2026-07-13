@@ -1164,7 +1164,11 @@ table.ref tr.benchsep td{border-top:1px solid var(--line-strong)}
 .gg-opt:hover{background:var(--panel-2)}
 .gg-opt .nm{font-weight:600;font-size:14px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .gg-opt .sub{font-family:var(--mono);font-size:11px;color:var(--ink-3);white-space:nowrap}
-.navmore-menu a[href="#/play"]{color:var(--accent-deep);font-weight:600}
+/* subtle emphasis on Arcade — a soft accent pill sets the "fun" destination apart from the data views */
+.mainnav a.nav-arcade{color:var(--accent-deep);font-weight:600;background:var(--accent-wash)}
+.mainnav a.nav-arcade:hover{color:var(--accent-deep);background:color-mix(in srgb,var(--accent) 15%,transparent)}
+.mainnav a.nav-arcade.on::after{background:var(--accent-deep)}
+.mobile-menu a.nav-arcade{color:var(--accent-deep)}
 
 /* Play launcher — restrained tiles with monogram marks */
 .ptiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
