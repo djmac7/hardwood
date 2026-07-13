@@ -167,13 +167,29 @@
   const pLink = (id, name) => `<a href="#/player/${id}">${esc(name)}</a>`;
 
   /* ---------- tooltip ---------- */
+  const COARSE = !!(window.matchMedia && (matchMedia("(pointer:coarse)").matches || matchMedia("(hover:none)").matches));
+  let ttTimer;
+  function forceHideTT() { clearTimeout(ttTimer); tt.classList.remove("on"); }
   function showTT(html, x, y) {
     tt.innerHTML = html; tt.classList.add("on");
-    const w = tt.offsetWidth, h = tt.offsetHeight; let nx = x + 16, ny = y - h - 10;
-    if (nx + w > innerWidth - 8) nx = x - w - 16; if (ny < 8) ny = y + 18;
-    tt.style.left = nx + "px"; tt.style.top = ny + "px";
+    const w = tt.offsetWidth, h = tt.offsetHeight; let nx, ny;
+    if (COARSE) {
+      // touch: center over the tap point, clamp inside the viewport, auto-dismiss
+      nx = Math.min(Math.max(8, x - w / 2), innerWidth - w - 8);
+      ny = y - h - 14; if (ny < 8) ny = y + 20;
+      clearTimeout(ttTimer); ttTimer = setTimeout(forceHideTT, 2600);
+    } else {
+      nx = x + 16; ny = y - h - 10;
+      if (nx + w > innerWidth - 8) nx = x - w - 16; if (ny < 8) ny = y + 18;
+    }
+    // clamp both axes so a fixed tooltip can never push the page wider than the viewport
+    tt.style.left = Math.min(Math.max(8, nx), innerWidth - w - 8) + "px"; tt.style.top = ny + "px";
   }
-  const hideTT = () => tt.classList.remove("on");
+  // On touch, pointerleave fires the instant a finger lifts and would flash the tip
+  // away — so ignore hover-hide on coarse pointers and rely on the auto-dismiss timer
+  // plus a capture-phase tap-away (which runs before a trigger re-shows its own tip).
+  const hideTT = () => { if (!COARSE) tt.classList.remove("on"); };
+  if (COARSE) document.addEventListener("pointerdown", forceHideTT, true);
 
   /* ---------- per-route SEO (title, description, canonical, Open Graph, JSON-LD) ---------- */
   const SITE = "Hardwood";
