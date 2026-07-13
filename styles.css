@@ -1466,8 +1466,8 @@ table.ref tr.benchsep td{border-top:1px solid var(--line-strong)}
 .tm-mini .ava{width:20px;height:20px}
 .tm-ab{font-size:11px}
 .tm-yrs{font-size:10px;font-weight:500;color:var(--ink-4);letter-spacing:.02em}
-.tm-mini.cur{border-color:var(--accent);background:var(--accent-wash);color:var(--accent-deep)}
-.tm-mini.cur .tm-yrs{color:color-mix(in srgb,var(--accent-deep) 70%,transparent)}
+.tm-mini.cur{border-color:var(--accent-soft)}
+.tm-mini.cur .tm-yrs{color:var(--accent-deep)}
 .tm-arrow{color:var(--ink-4);font-size:15px;line-height:1;user-select:none;flex:none}
 
 /* --- injury badge icon --- */
@@ -1481,7 +1481,8 @@ table.ref tr.benchsep td{border-top:1px solid var(--line-strong)}
   color:var(--ink-2);font-size:15px;line-height:1;cursor:pointer;display:grid;place-items:center;transition:.14s;-webkit-tap-highlight-color:transparent}
 .pt-step:hover{border-color:var(--accent);color:var(--accent-deep);background:var(--accent-wash)}
 .pt-step:active{transform:scale(.9)}
-.pt-line{font-variant-numeric:tabular-nums}
+.pt-line{font-variant-numeric:tabular-nums;min-width:74px;text-align:center;display:inline-block}
+.pt-lineval{display:inline-block;min-width:30px;text-align:left}
 
 /* --- player "Career" block: labeled Honors + Career path (declutters the masthead) --- */
 .co{margin:0 0 22px;border:1px solid var(--line);border-radius:var(--rad);background:var(--panel);box-shadow:var(--shadow-sm);overflow:hidden}
