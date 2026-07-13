@@ -136,6 +136,9 @@ def rosters():
     incomers (rookies not yet in the historical set) are skipped."""
     search = json.load(open(os.path.join(DATA, "search.json")))
     meta_cur = json.load(open(os.path.join(DATA, "meta.json")))["current"]
+    # ESPN fullName -> our stored name, for players ESPN lists under a different form
+    # (e.g. "Ronald Holland II" vs our "Ron Holland") so the roster match doesn't drop them.
+    NAME_ALIAS = {"ronald holland": "ron holland"}
     idx, pid2name = {}, {}
     for e in search:
         idx.setdefault(norm(e[1]), []).append(((e[3] or 0), e[0])); pid2name[e[0]] = e[1]
@@ -157,7 +160,8 @@ def rosters():
             continue
         roster, seen = [], set()
         for a in r.get("athletes", []):
-            hit = idx.get(norm(a.get("fullName", "")))
+            key = norm(a.get("fullName", ""))
+            hit = idx.get(key) or idx.get(NAME_ALIAS.get(key, "\x00"))
             if not hit or hit[0][1] in seen:
                 continue
             pid = hit[0][1]; seen.add(pid)
