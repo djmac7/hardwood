@@ -600,7 +600,7 @@
     ];
     const tile = (g) => `<a class="ptile${g.live ? " live" : ""}" href="${g.href}" ${g.ext ? 'target="_blank" rel="noopener noreferrer"' : ""}>
       <span class="ptile-mark">${g.ic}</span>
-      <span class="ptile-body"><span class="ptile-tag">${g.live ? '<span class="ptile-dot"></span>' : ""}${g.tag}</span><b>${esc(g.t)}</b><span class="ptile-d">${esc(g.d)}</span></span>
+      <span class="ptile-body"><b>${esc(g.t)}</b><span class="ptile-d">${esc(g.d)}</span></span>
       <span class="ptile-go">${g.ext ? "↗" : "→"}</span></a>`;
     app.innerHTML = `<div class="wrap page">
       <div class="crumb"><a href="#/">Home</a><span class="sep">/</span><span>Arcade</span></div>
@@ -792,13 +792,21 @@
       <div class="section-title"><div><span class="eyebrow">Arcade · timing</span><h2>Buzzer Beater</h2></div>
         <span class="hint"><span id="bzScore">0</span> made · best <span id="bzBest">${best}</span></span></div>
       <div class="buzzer" id="bzArena">
-        <div class="bz-court">
-          <svg class="bz-hoop" viewBox="0 0 120 80" aria-hidden="true"><rect x="52" y="6" width="16" height="26" rx="2" fill="none" stroke="currentColor" stroke-width="2.5"/><line x1="44" y1="34" x2="76" y2="34" stroke="var(--accent)" stroke-width="3"/><path d="M46 35 L50 48 M74 35 L70 48 M54 35 L56 50 M66 35 L64 50 M60 35 L60 51" stroke="var(--accent-deep)" stroke-width="1.4" fill="none" opacity=".8"/></svg>
+        <div class="bz-scene" id="bzScene">
+          <svg class="bz-hoop" viewBox="0 0 200 150" aria-hidden="true">
+            <rect x="62" y="12" width="76" height="54" rx="7" fill="var(--panel)" stroke="var(--line-strong)" stroke-width="2.5"/>
+            <rect x="86" y="30" width="28" height="20" rx="3" fill="none" stroke="var(--line)" stroke-width="2"/>
+            <path d="M100 66v10" stroke="var(--line-strong)" stroke-width="3"/>
+            <g stroke="var(--line-strong)" stroke-width="1.3" fill="none" opacity=".75"><path d="M72 80 96 112M128 80 104 112M86 80 98 113M114 80 102 113M100 80V113"/><path d="M80 92H120M84 102H116"/></g>
+            <ellipse cx="100" cy="80" rx="30" ry="7.5" fill="none" stroke="var(--accent-deep)" stroke-width="4"/>
+            <path d="M70 80a30 7.5 0 0 1 60 0" fill="none" stroke="var(--accent)" stroke-width="4.5"/>
+          </svg>
           <div class="bz-ball" id="bzBall"></div>
+          <div class="bz-pop" id="bzPop"></div>
         </div>
-        <div class="bz-track" id="bzTrack"><div class="bz-zone" id="bzZone"></div><div class="bz-marker" id="bzMarker"></div></div>
+        <div class="bz-meter" id="bzTrack"><div class="bz-zone" id="bzZone"></div><span class="bz-mid"></span><div class="bz-marker" id="bzMarker"></div></div>
+        <div class="bz-hud"><span class="bz-hint">Release in the green</span><div class="bz-lives" id="bzLives"></div></div>
         <button class="btn primary bz-shoot" id="bzShoot">Shoot</button>
-        <div class="bz-lives" id="bzLives"></div>
       </div>
       <p class="news-foot" style="margin-top:14px">Tap <b>Shoot</b> (or press Space) when the marker is inside the green zone. It gets faster and tighter as you go — three misses and it's over. <a class="link" href="#/play">← Arcade</a></p>
     </div>`;
@@ -815,18 +823,23 @@
       raf = requestAnimationFrame(loop);
     }
     raf = requestAnimationFrame(loop);
+    const scene = $("#bzScene"), pop = $("#bzPop");
     function shoot() {
       if (over) return;
       const made = Math.abs(pos - 0.5) <= zone / 2;
-      ball.classList.remove("make", "miss"); void ball.offsetWidth;
+      ball.classList.remove("make", "miss"); scene.classList.remove("make", "miss"); void ball.offsetWidth;
       if (made) {
-        score++; $("#bzScore").textContent = score; ball.classList.add("make");
+        score++; $("#bzScore").textContent = score; ball.classList.add("make"); scene.classList.add("make");
+        const perfect = Math.abs(pos - 0.5) <= zone * 0.2;
+        pop.textContent = perfect ? "SWISH!" : "+1"; pop.className = "bz-pop" + (perfect ? " swish" : ""); void pop.offsetWidth; pop.classList.add("show");
         spd = Math.min(2.4, spd + 0.09); zone = Math.max(0.09, zone - 0.012); setZone();
         if (score > best) { localStorage.setItem("hw-buzzer-best", score); $("#bzBest").textContent = score; }
       } else {
-        misses++; ball.classList.add("miss"); setLives();
+        misses++; ball.classList.add("miss"); scene.classList.add("miss"); setLives();
+        pop.textContent = "MISS"; pop.className = "bz-pop miss"; void pop.offsetWidth; pop.classList.add("show");
         if (misses >= 3) return bzOver();
       }
+      setTimeout(() => { ball.classList.remove("make", "miss"); scene.classList.remove("make", "miss"); }, 560);   // ball returns to the ready spot between shots
     }
     function bzOver() {
       over = true; cancelAnimationFrame(raf);
