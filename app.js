@@ -1138,10 +1138,14 @@
     const rested = [], shortR = [];
     for (let i = 0; i < rows.length; i++) { const nx = rows[i + 1]; if (!nx) { rested.push(rows[i]); continue; } (dd(rows[i].date, nx.date) <= 1 ? shortR : rested).push(rows[i]); }
     const defs = [["Last 10", rows.slice(0, 10)], ["Home", rows.filter((r) => r.home)], ["Away", rows.filter((r) => !r.home)], ["On rest (2+ d)", rested], ["Short rest (≤1 d)", shortR], ["In wins", rows.filter((r) => r.w)], ["In losses", rows.filter((r) => !r.w)]];
-    const line = (lab, a) => a ? `<tr><td class="l">${lab}</td><td>${a.g}</td><td>${a.mpg.toFixed(1)}</td><td class="hi">${a.ppg.toFixed(1)}</td><td>${a.rpg.toFixed(1)}</td><td>${a.apg.toFixed(1)}</td></tr>` : "";
+    // tiny "form" glyph: scoring shape over the last 10 games, oldest → newest, most recent bar emphasised
+    const l10 = rows.slice(0, 10).filter((r) => r.pts != null);
+    const spark = l10.length >= 3 ? (() => { const v = l10.map((r) => r.pts).reverse(), mx = Math.max(...v, 1);
+      return `<span class="spk" title="Points, last ${v.length} games (old → new)" aria-hidden="true">${v.map((x, i) => `<i class="${i === v.length - 1 ? "now" : ""}" style="height:${Math.max(16, Math.round(x / mx * 100))}%"></i>`).join("")}</span>`; })() : "";
+    const line = (lab, a, extra) => a ? `<tr><td class="l">${lab}${extra || ""}</td><td>${a.g}</td><td>${a.mpg.toFixed(1)}</td><td class="hi">${a.ppg.toFixed(1)}</td><td>${a.rpg.toFixed(1)}</td><td>${a.apg.toFixed(1)}</td></tr>` : "";
     return `<div class="card pad" style="min-width:0"><div class="card-h"><h3>Recent splits</h3><span class="hint">last ${rows.length} games</span></div>
       <div class="tbl-wrap"><table class="ref" style="min-width:0;width:100%"><thead><tr><th class="l">Split</th><th>G</th><th>MPG</th><th>PPG</th><th>RPG</th><th>APG</th></tr></thead>
-      <tbody>${defs.map(([lab, rs]) => line(lab, agg(rs))).join("")}</tbody></table></div></div>`;
+      <tbody>${defs.map(([lab, rs]) => line(lab, agg(rs), lab === "Last 10" ? spark : "")).join("")}</tbody></table></div></div>`;
   }
 
   // NBA 2K rating card — OVR badge + six attribute-category bars (dense by design).

@@ -1206,6 +1206,11 @@ table.ref tr.benchsep td{border-top:1px solid var(--line-strong)}
 .gl-collapsed .gl-extra{display:none}
 .gl-toggle{font-size:13px}
 
+/* inline "form" sparkline on the Recent splits "Last 10" row (scoring shape, no betting framing) */
+.spk{display:inline-flex;align-items:flex-end;gap:1.5px;height:13px;width:40px;margin-left:9px;vertical-align:-2px}
+.spk i{flex:1;min-width:2px;background:var(--line-strong);border-radius:1px}
+.spk i.now{background:var(--accent-deep)}
+
 /* betting hub — matchup trends + responsible-gambling note */
 .rg-note{font-family:var(--mono);font-size:11.5px;line-height:1.5;color:var(--ink-3);background:var(--panel-2);
   border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin-bottom:16px}
