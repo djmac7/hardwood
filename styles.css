@@ -197,6 +197,19 @@ table.ref .who .nm,table.ref .who a{white-space:nowrap;overflow:hidden;text-over
 table.ref td.grow,table.ref th.grow{width:99%}            /* absorbs slack so other cols size to content */
 table.ref td.num,table.ref th.num{text-align:center;color:var(--ink-3);width:1%;white-space:nowrap}
 table.ref tbody tr.clickable{cursor:pointer}
+/* Mobile: dense stat tables scroll horizontally with a pinned first column. Tighten
+   spacing, cap the name column (ellipsis), and set names in the narrower sans face so
+   the stat columns are visible without a scroll, and a stronger right-edge fade hints
+   there's more to swipe to. */
+@media (max-width:640px){
+  .tbl-wrap{background:linear-gradient(90deg,transparent calc(100% - 40px),var(--panel)) right / 100% 100% no-repeat;background-attachment:local}
+  table.ref{min-width:0}
+  table.ref th,table.ref td{padding:8px 10px}
+  table.ref td{font-size:12.5px}
+  table.ref th{font-size:9.5px}
+  table.ref .who{max-width:40vw}
+  table.ref .who a,table.ref .who .nm{font-family:var(--sans);font-size:13.5px;font-weight:600;letter-spacing:-.01em}
+}
 .tm-tag{display:inline-flex;align-items:center;gap:6px}
 .tm-tag .b{width:7px;height:14px;border-radius:2px;flex:none}
 

@@ -1711,8 +1711,16 @@
     const rosterSeason = t.lastSeason || (t.seasons[0] && t.seasons[0].season);      // the season t.roster actually reflects
     const conf = m ? m.conf : null;
     const teamSel = `<label class="season-select"><span>Season</span><select class="mini-select" id="tmSeasonSel">${t.seasons.map((s) => `<option value="${s.season}" ${s.season === latest.season ? "selected" : ""}>${seasonLabel(s.season)}</option>`).join("")}</select></label>`;
-    // contracts for the selected season (from salary data, filtered to this team)
-    const contracts = sal ? (sal.bySeason[latest.season] || []).filter((r) => r[2] === ab) : [];
+    // Contracts are forward-looking: once a season ends, "on the books" means NEXT
+    // season. In the current/default view, show whichever of the current or upcoming
+    // season actually has more guaranteed deals (so the offseason shows next year, an
+    // in-progress season shows the current one). Historical views use their own season.
+    const teamAt = (s) => (sal ? (sal.bySeason[s] || []) : []).filter((r) => r[2] === ab);
+    let contractSeason = latest.season;
+    if (latest.season >= META.current) {
+      contractSeason = teamAt(META.current + 1).length > teamAt(META.current).length ? META.current + 1 : META.current;
+    }
+    const contracts = teamAt(contractSeason);
     const payroll = contracts.reduce((a, r) => a + r[3], 0);
     let seed = null;
     if (latest) { try { const S = await getSeason(latest.season); const cs = splitConf(S.standings); const grp = m && cs[m.conf] ? cs[m.conf] : (cs.League || []); const idx = grp.findIndex((x) => x.abbr === ab); if (idx > -1) seed = idx + 1; } catch {} }
@@ -1767,9 +1775,9 @@
         <div class="card pad" style="min-width:0">
           <div class="card-h"><h3>${latest && latest.season === rosterSeason ? seasonLabel(latest.season) + " roster leaders" : seasonLabel(rosterSeason) + " roster"}</h3><span class="hint">${latest && latest.season === rosterSeason ? "per game" : "latest on record · per game"}</span></div>
           ${t.roster && t.roster.length ? `<div class="tbl-wrap"><table class="ref">
-            <thead><tr><th class="l">Player</th><th class="l">Pos</th><th>GP</th><th>REB</th><th>AST</th><th>PTS</th></tr></thead>
+            <thead><tr><th class="l">Player</th><th>PTS</th><th>REB</th><th>AST</th><th>GP</th><th class="l">Pos</th></tr></thead>
             <tbody>${t.roster.map((r) => `<tr><td class="l"><span class="who">${headshot(r[0], r[1], ab, "xs")}<a href="#/player/${r[0]}">${esc(r[1])}</a></span></td>
-              <td class="l muted">${esc((r[2] || "").split("-")[0])}</td><td>${r[3]}</td><td>${one(r[5])}</td><td>${one(r[6])}</td><td class="hi">${one(r[4])}</td></tr>`).join("")}</tbody>
+              <td class="hi">${one(r[4])}</td><td>${one(r[5])}</td><td>${one(r[6])}</td><td>${r[3]}</td><td class="l muted">${esc((r[2] || "").split("-")[0])}</td></tr>`).join("")}</tbody>
           </table></div>` : `<p class="muted" style="font-size:14px">No roster on record.</p>`}
         </div>
         <div class="card pad" style="min-width:0">
@@ -1784,7 +1792,7 @@
         </div>
       </div>
       ${gamesCard}
-      ${contracts.length ? `<div class="section-title" id="sec-contracts" style="margin-top:26px"><div><span class="eyebrow">Nominal · ${contracts.length} on the books · ${money(payroll)} total</span><h2>${seasonLabel(latest.season)} payroll</h2></div><a class="link" href="#/salaries/${latest.season}">Salary hub →</a></div>
+      ${contracts.length ? `<div class="section-title" id="sec-contracts" style="margin-top:26px"><div><span class="eyebrow">Nominal · ${contracts.length} on the books · ${money(payroll)} total</span><h2>${seasonLabel(contractSeason)} payroll</h2></div><a class="link" href="#/salaries/${contractSeason}">Salary hub →</a></div>
         <div class="card" style="margin-bottom:24px"><div class="tbl-wrap"><table class="ref" style="min-width:420px">
           <thead><tr><th class="num">#</th><th class="l grow">Player</th><th>Salary</th><th>% of payroll</th></tr></thead>
           <tbody>${contracts.map((r, i) => `<tr class="${r[0] ? "clickable" : ""}" ${r[0] ? `onclick="location.hash='#/player/${r[0]}'"` : ""}>
@@ -1803,7 +1811,12 @@
   async function renderSalaries(y) {
     let sal; try { sal = await getSalaries(); } catch { return notFound("salary data"); }
     CPI = CPI || await getCPI().catch(() => null);
-    const [lo, hi] = sal.range, yr = Math.min(hi, Math.max(lo, +y || hi));
+    // default to the most recent season with a full league book: the upcoming season
+    // once the current one is over (offseason), otherwise the current season — never the
+    // sparse far-future years that only exist because a few stars are signed that long.
+    const [lo, hi] = sal.range;
+    const _def = ((sal.bySeason[META.current + 1] || []).length > (sal.bySeason[META.current] || []).length) ? META.current + 1 : META.current;
+    const yr = Math.min(hi, Math.max(lo, +y || _def));
     const sel = `<label class="season-select"><span>Season</span><select id="salSel">${Array.from({ length: hi - lo + 1 }, (_, i) => hi - i).map((v) => `<option value="${v}" ${v === yr ? "selected" : ""}>${seasonLabel(v)}</option>`).join("")}</select></label>`;
     const paid = sal.bySeason[yr] || [];               // [pid, name, abbr, salary]
     const payr = sal.payrollRank[yr] || [];            // [abbr, total]
