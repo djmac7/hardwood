@@ -1280,8 +1280,6 @@
               ${draft ? (draft.undrafted ? bioItem("Draft", "Undrafted") : bioItem("Draft", `${draft.year} · Rd ${draft.round}, Pk ${draft.overall}${isRealTeam(draft.team) ? " · " + draft.team : ""}`)) : ""}
               ${b.college ? bioItem("College", esc(b.college)) : (b.highSchool ? bioItem("High School", esc(b.highSchool)) : "")}
             </div>
-            <div class="chip-row">${p.acc.length ? p.acc.map((a) => { const d = accDetail(a.t, p.accy) || accDesc(a.t); return `<span class="chip ${a.g ? "gold" : ""} has-detail" data-acc="${esc(a.t)}" data-years="${esc(d)}">${a.g ? "★ " : ""}${esc(a.t)}</span>`; }).join("") : `<span class="muted" style="font-size:13px">${esc(p.name)} played ${p.log.length} season${p.log.length > 1 ? "s" : ""} in the ${p.log[0][1]}.</span>`}</div>
-            ${teamsStrip}
             <div id="playerInjury"></div>
           </div>
         </div>
@@ -1289,6 +1287,11 @@
 
       <div class="tilerow">${tiles.map(([k, v, sk, a]) => `<div class="tile ${a ? "accent" : ""}" data-stat="${sk || ""}"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("")}
         <div class="tile"><div class="k">${active ? "Season" : "Career G"}</div><div class="v" style="font-size:22px">${active ? seasonLabel(curSeasonNo) : (cAvg.g || cTot.g || 0).toLocaleString()}</div></div></div>
+
+      ${(p.acc.length || teamsStrip) ? `<div class="co">
+        ${p.acc.length ? `<div class="co-row"><span class="co-lab">Honors</span><div class="chip-row">${p.acc.map((a) => { const d = accDetail(a.t, p.accy) || accDesc(a.t); return `<span class="chip ${a.g ? "gold" : ""} has-detail" data-acc="${esc(a.t)}" data-years="${esc(d)}">${a.g ? "★ " : ""}${esc(a.t)}</span>`; }).join("")}</div></div>` : ""}
+        ${teamsStrip ? `<div class="co-row"><span class="co-lab">Career path</span>${teamsStrip}</div>` : ""}
+      </div>` : ""}
 
       <nav class="jumpnav" id="jumpNav">${[["Stats", "sec-stats"], ["Shooting", "sec-shooting"], ["2K", "sec-2k"], ["Recent", "recentForm"], ["News", "playerNews"], (salRows && salRows.length ? ["Salary", "sec-salary"] : null), ["Related", "relPlayers"]].filter(Boolean).map(([lab, t]) => `<a href="#" data-tgt="${t}">${lab}</a>`).join("")}</nav>
 

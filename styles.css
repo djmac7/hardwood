@@ -1482,3 +1482,15 @@ table.ref tr.benchsep td{border-top:1px solid var(--line-strong)}
 .pt-step:hover{border-color:var(--accent);color:var(--accent-deep);background:var(--accent-wash)}
 .pt-step:active{transform:scale(.9)}
 .pt-line{font-variant-numeric:tabular-nums}
+
+/* --- player "Career" block: labeled Honors + Career path (declutters the masthead) --- */
+.co{margin:0 0 22px;border:1px solid var(--line);border-radius:var(--rad);background:var(--panel);box-shadow:var(--shadow-sm);overflow:hidden}
+.co-row{display:grid;grid-template-columns:116px 1fr;gap:20px;align-items:start;padding:16px 20px}
+.co-row + .co-row{border-top:1px solid var(--line-soft)}
+.co-lab{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);padding-top:6px}
+.co-row .tm-timeline{margin-top:0}
+.co-row .chip-row{gap:7px}
+@media (max-width:640px){
+  .co-row{grid-template-columns:1fr;gap:9px;padding:14px 16px}
+  .co-lab{padding-top:0}
+}
