@@ -245,6 +245,13 @@ table.ref tbody tr.clickable{cursor:pointer}
 .mast-search input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-wash)}
 .mast-search .ic{position:absolute;left:16px;top:50%;transform:translateY(-50%);width:19px;height:19px;color:var(--ink-3)}
 .mast-search .results{top:58px}
+/* home hero editorial headline */
+.hero-copy{max-width:600px}
+.hero2 h1{font-size:clamp(29px,4.8vw,44px);font-weight:600;line-height:1.06;letter-spacing:-.03em;margin:11px 0 12px}
+.hero2 h1 em{font-style:italic;color:var(--accent-deep)}
+.hero-sub{color:var(--ink-2);font-size:15px;line-height:1.5;max-width:54ch;margin:0 0 22px}
+.hero-search{margin-top:0}
+@media (max-width:560px){.hero2 h1{font-size:27px}.hero-sub{font-size:14px;margin-bottom:18px}}
 .mast-quick{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .mast-quick span{font-size:12.5px;color:var(--ink-3)}
 .mast-quick a{font-size:12.5px;color:var(--ink-2);border-bottom:1px solid var(--line-strong);padding-bottom:1px}

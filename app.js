@@ -360,7 +360,11 @@
     app.innerHTML = `
     <section class="hero2 reveal">
       <div class="wrap">
-        <h1 class="sr-only">Hardwood — NBA stats &amp; history</h1>
+        <div class="hero-copy">
+          <span class="eyebrow">The modern NBA reference</span>
+          <h1>Every player. Every season.<br><em>Beautifully legible.</em></h1>
+          <p class="hero-sub">Career stats, contracts, standings and box scores for every player and team — from ${META.seasons[META.seasons.length - 1]} to today.</p>
+        </div>
         <div class="mast-search hero-search">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
           <input id="mastSearch" type="text" placeholder="Search any player or team…" aria-label="Search" autocomplete="off" spellcheck="false" />
