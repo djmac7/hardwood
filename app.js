@@ -380,10 +380,6 @@
         </div>
       </div>
 
-      <section class="reveal" style="margin-top:30px">
-        <div class="section-title"><h2>Offense against defense · ${seasonLabel(cur)}</h2><a class="link" href="#/teams">All teams →</a></div>
-        <div class="card big pad scatter-card"><div class="chart-hint"><span class="dotpulse"></span>Hover a team · click to open</div><figure id="scatterHome" style="margin:0"></figure></div>
-      </section>
     </div>`;
 
     $("#leadersHome").innerHTML = `<div class="card-h"><h3>${seasonLabel(cur)} leaders</h3>
@@ -402,7 +398,6 @@
     }));
 
     $("#featured").innerHTML = await playerCards(featIds);
-    drawScatter("scatterHome", st);
     wireSearch($("#mastSearch"), $("#mastResults"));
   }
   const leagueTile = (k, big, lab) => `<div class="c"><div class="lk">${k}</div><div class="big">${big}</div><div class="lab">${lab}</div></div>`;
@@ -1058,7 +1053,7 @@
       <nav class="jumpnav" id="jumpNav">${[["Stats", "sec-stats"], ["Shooting", "sec-shooting"], ["2K", "sec-2k"], ["Recent", "recentForm"], ["News", "playerNews"], (salRows && salRows.length ? ["Salary", "sec-salary"] : null), ["Related", "relPlayers"]].filter(Boolean).map(([lab, t]) => `<a href="#" data-tgt="${t}">${lab}</a>`).join("")}</nav>
 
       <div class="card pad" id="sec-stats" style="min-width:0;margin-bottom:22px">
-        <div class="card-h"><div style="display:flex;align-items:baseline;gap:14px;min-width:0"><h3>Career stats</h3><a class="link" href="#/compare/${p.id}">⇄ Compare</a></div>
+        <div class="card-h"><div style="display:flex;align-items:baseline;gap:14px;min-width:0"><h3>Career stats</h3></div>
           <div class="tabs" id="statTabs">
             <button data-v="perg" aria-selected="true">Per Game</button>
             <button data-v="tot" aria-selected="false">Totals</button>
@@ -2083,6 +2078,7 @@
   });
 
   /* ================= ⌘K COMMAND PALETTE ================= */
+  let cmdkOpen = () => {};
   function initCmdK() {
     const RK = "hw-recent";
     const getRec = () => { try { return JSON.parse(localStorage.getItem(RK) || "[]"); } catch (e) { return []; } };
@@ -2152,6 +2148,7 @@
     }
     function open() { if (!el.hidden) return; el.hidden = false; document.body.classList.add("cmdk-open"); input.value = ""; build(""); requestAnimationFrame(() => input.focus()); }
     function close() { el.hidden = true; document.body.classList.remove("cmdk-open"); }
+    cmdkOpen = open;
     input.addEventListener("input", () => build(input.value));
     input.addEventListener("keydown", (e) => {
       if (e.key === "ArrowDown") { e.preventDefault(); sel = Math.min(sel + 1, items.length - 1); renderList(); }
@@ -2174,8 +2171,15 @@
     try {
       [META, SEARCH] = await Promise.all([getMeta(), getSearch()]);
       SMAP = {}; SEARCH.forEach((e) => (SMAP[e[0]] = e));
-      wireSearch($("#topSearch"), $("#topResults"));
       initCmdK();
+      // The top-bar search is a trigger for the ⌘K palette, not an inline text box.
+      const ts = $("#topSearch");
+      if (ts) {
+        ts.readOnly = true; ts.setAttribute("role", "button"); ts.setAttribute("aria-label", "Search (opens command menu)");
+        ts.addEventListener("pointerdown", (e) => { e.preventDefault(); cmdkOpen(); });
+        ts.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " " || e.key === "/") { e.preventDefault(); cmdkOpen(); } });
+        ts.addEventListener("focus", () => cmdkOpen());
+      }
       addEventListener("hashchange", route);
       await route();
     } catch (err) {

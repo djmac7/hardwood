@@ -281,14 +281,16 @@ table.ref tbody tr.clickable{cursor:pointer}
 
 /* standings mini */
 .mini-stand table{width:100%;border-collapse:collapse}
-.mini-stand td{padding:8px 8px;border-bottom:1px solid var(--line-soft);font-size:13.5px}
+.mini-stand td{padding:9px 8px;border-bottom:1px solid var(--line-soft);font-size:13.5px;vertical-align:middle}
 .mini-stand tr:hover td{background:var(--panel-2)}
-.mini-stand .seed{font-family:var(--mono);color:var(--ink-3);font-size:12px;width:20px}
-.mini-stand .tm{font-weight:600;display:flex;align-items:center;gap:9px}
+.mini-stand .seed{font-family:var(--mono);color:var(--ink-3);font-size:12px;width:20px;white-space:nowrap}
+.mini-stand .tm .tmwrap,.mini-stand .tm{font-weight:600;display:flex;align-items:center;gap:9px;min-width:0}
 .mini-stand .tm .b{width:7px;height:18px;border-radius:2px;flex:none}
-.mini-stand .rec,.mini-stand .pct{font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right;font-size:13px}
-.mini-stand .pct{color:var(--ink-3)}
-.mini-stand .clinch{font-family:var(--mono);font-size:10px;color:var(--gold)}
+.mini-stand .rec,.mini-stand .pct{font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right;font-size:13px;white-space:nowrap}
+.mini-stand .pct{color:var(--ink-3);width:1%}
+.mini-stand .rec{width:1%}
+.mini-stand .tnm{min-width:0}
+.mini-stand .clinch{font-family:var(--mono);font-size:10px;color:var(--gold);white-space:nowrap;flex:none}
 
 /* ---------------- player page ---------------- */
 .phead{position:relative;border-radius:18px;overflow:hidden;border:1px solid var(--line);box-shadow:var(--shadow);margin-bottom:24px}
