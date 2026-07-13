@@ -1202,20 +1202,9 @@ table.ref tr.benchsep td{border-top:1px solid var(--line-strong)}
 .embed-frame{border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:var(--shadow-sm);background:var(--panel);height:min(80vh,920px)}
 .embed-frame iframe{width:100%;height:100%;border:0;display:block}
 
-/* full game log collapse + prop-trends (betting) card */
+/* full game log collapse */
 .gl-collapsed .gl-extra{display:none}
 .gl-toggle{font-size:13px}
-.pt-row{padding:12px 0;border-top:1px solid var(--line-soft)}
-.pt-row:first-of-type{border-top:0;padding-top:2px}
-.pt-h{display:flex;align-items:baseline;justify-content:space-between}
-.pt-lab{font-weight:600;font-size:14px}
-.pt-line{font-family:var(--mono);font-size:12px;color:var(--ink-3)}
-.pt-line b{color:var(--ink);font-weight:600}
-.pt-spark{display:flex;align-items:flex-end;gap:3px;height:34px;margin:8px 0 7px}
-.pt-bar{flex:1;min-width:3px;background:var(--line-strong);border-radius:2px 2px 0 0}
-.pt-bar.over{background:linear-gradient(180deg,var(--accent),var(--accent-deep))}
-.pt-hit{font-family:var(--mono);font-size:11.5px;color:var(--ink-2)}
-.pt-hit b{color:var(--accent-deep);font-weight:700}
 
 /* betting hub — matchup trends + responsible-gambling note */
 .rg-note{font-family:var(--mono);font-size:11.5px;line-height:1.5;color:var(--ink-3);background:var(--panel-2);
@@ -1261,14 +1250,7 @@ table.ref tr.benchsep td{border-top:1px solid var(--line-strong)}
 .inj-tag.out{color:var(--crit);background:var(--crit-bg)}
 .inj-tag.dtd{color:var(--warn);background:color-mix(in srgb,var(--warn) 14%,var(--panel))}
 
-/* prop card: vs-opponent grid + odds chips */
-.pt-vs{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
-.pt-vs-h{font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);margin-bottom:9px}
-.pt-vs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(50px,1fr));gap:8px}
-.pt-vs-cell{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 4px;border-radius:9px;background:var(--panel-2);border:1px solid var(--line);text-decoration:none}
-.pt-vs-cell:hover{border-color:var(--line-strong)}
-.pt-vs-pts{font-family:var(--mono);font-size:14px;font-weight:600;color:var(--ink)}
-.pt-vs-n{font-family:var(--mono);font-size:9px;color:var(--ink-4)}
+/* betting hub — odds chips */
 .bh-odds{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line-soft)}
 .bh-odds .oc{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);background:var(--accent-wash);border:1px solid var(--accent-soft);border-radius:7px;padding:4px 10px}
 .bh-odds .oc b{color:var(--accent-deep);font-weight:700}
@@ -1499,15 +1481,6 @@ table.ref tr.benchsep td{border-top:1px solid var(--line-strong)}
 .inj-ic{width:16px;height:16px;flex:none}
 .inj-badge.out .inj-ic{color:var(--crit)}
 .inj-badge.dtd .inj-ic{color:var(--warn)}
-
-/* --- interactive prop line control --- */
-.pt-linectl{display:inline-flex;align-items:center;gap:7px}
-.pt-step{width:22px;height:22px;border-radius:7px;border:1px solid var(--line-strong);background:var(--panel);
-  color:var(--ink-2);font-size:15px;line-height:1;cursor:pointer;display:grid;place-items:center;transition:.14s;-webkit-tap-highlight-color:transparent}
-.pt-step:hover{border-color:var(--accent);color:var(--accent-deep);background:var(--accent-wash)}
-.pt-step:active{transform:scale(.9)}
-.pt-line{font-variant-numeric:tabular-nums;min-width:74px;text-align:center;display:inline-block}
-.pt-lineval{display:inline-block;min-width:30px;text-align:left}
 
 /* --- player "Career" block: labeled Honors + Career path (declutters the masthead) --- */
 .co{margin:0 0 22px;border:1px solid var(--line);border-radius:var(--rad);background:var(--panel);box-shadow:var(--shadow-sm);overflow:hidden}

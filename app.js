@@ -1072,52 +1072,6 @@
     });
   }
 
-  // Prop trends (betting angle): recent PTS/REB/AST vs season average, hit-rate + sparkline.
-  async function propTrendsCard(pid) {
-    let rows; try { rows = await getPGames(pid); } catch { return ""; }
-    const played = (rows || []).filter((r) => r.min != null && r.pts != null);
-    if (played.length < 5) return "";
-    // Interactive prop row: adjustable over/under line — bars + hit rate recompute live.
-    const stat = (key, label) => {
-      const vals = played.map((r) => r[key] ?? 0);
-      const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
-      const line0 = Math.max(0.5, Math.round(avg * 2) / 2);
-      const spark = vals.slice(0, 10).reverse(), mx = Math.max(...spark, 1);
-      const bars = spark.map((v) => `<span class="pt-bar" data-v="${v}" style="height:${Math.max(10, v / mx * 100).toFixed(0)}%"></span>`).join("");
-      return `<div class="pt-row" data-vals="${vals.join(",")}" data-line="${line0}">
-        <div class="pt-h"><span class="pt-lab">${label}</span>
-          <div class="pt-linectl"><button class="pt-step" type="button" data-d="-0.5" aria-label="Lower line">−</button><span class="pt-line">O/U <b class="pt-lineval">${line0}</b></span><button class="pt-step" type="button" data-d="0.5" aria-label="Raise line">+</button></div></div>
-        <div class="pt-spark">${bars}</div>
-        <div class="pt-hit"><b class="pt-over"></b> over last 10 · <span class="pt-seasonpct muted"></span> over the last ${vals.length}</div></div>`;
-    };
-    // vs-opponent scoring — every opponent faced in the window (not a top-N slice), highest first.
-    const byOpp = {};
-    played.forEach((r) => { if (isRealTeam(r.opp)) (byOpp[r.opp] = byOpp[r.opp] || []).push(r); });
-    const opps = Object.entries(byOpp).map(([opp, gs]) => ({ opp, n: gs.length, pts: gs.reduce((a, g) => a + (g.pts || 0), 0) / gs.length }))
-      .sort((a, b) => b.pts - a.pts);
-    const vsOpp = opps.length ? `<div class="pt-vs"><div class="pt-vs-h">Points by opponent <span class="muted">· ${opps.length} teams faced</span></div><div class="pt-vs-grid">${opps.map((o) => `<a class="pt-vs-cell" href="#/team/${o.opp}">${teamLogo(o.opp, "xs")}<span class="pt-vs-pts">${one(o.pts)}</span><span class="pt-vs-n">${o.n}g</span></a>`).join("")}</div></div>` : "";
-    return `<div class="card pad" id="propTrends" style="min-width:0"><div class="card-h"><h3>Prop trends</h3><span class="hint">tap ± to set a line · last ${played.length}</span></div>
-      ${stat("pts", "Points")}${stat("reb", "Rebounds")}${stat("ast", "Assists")}${vsOpp}</div>`;
-  }
-  // Wire the adjustable prop lines after the card is mounted.
-  function wirePropTrends(root) {
-    $$(".pt-row", root).forEach((row) => {
-      const vals = row.dataset.vals.split(",").map(Number);
-      let line = +row.dataset.line;
-      const lineEl = row.querySelector(".pt-lineval"), overEl = row.querySelector(".pt-over"), pctEl = row.querySelector(".pt-seasonpct");
-      const bars = $$(".pt-bar", row);
-      const recompute = () => {
-        lineEl.textContent = line;
-        bars.forEach((b) => b.classList.toggle("over", +b.dataset.v > line));
-        const l10 = vals.slice(0, 10), o10 = l10.filter((v) => v > line).length, oAll = vals.filter((v) => v > line).length;
-        overEl.textContent = `${o10}/${l10.length}`;
-        pctEl.textContent = `${Math.round(oAll / vals.length * 100)}%`;
-      };
-      $$(".pt-step", row).forEach((btn) => btn.addEventListener("click", () => { line = Math.max(0, +(line + +btn.dataset.d).toFixed(1)); recompute(); }));
-      recompute();
-    });
-  }
-
   // Related internal links for a player — teammates + verified draft class.
   // More on-page links → more pages/session and denser internal linking for SEO.
   async function relatedPlayers(p) {
@@ -1444,12 +1398,11 @@
       const tt = $(".pSalTotal");
       if (tt) tt.textContent = moneyFull(Math.round(salRows.filter((r) => r[0] <= META.current).reduce((s, r) => s + (adj ? inflate(r[1], r[0]) : r[1]), 0)));
     }));
-    Promise.all([recentGamesCard(id), splitsCard(id), propTrendsCard(id)]).then(([games, splits, props]) => {
-      const el = $("#recentForm"); if (!el || (!games && !splits && !props)) return;
-      const right = (splits || "") + (props || "");
+    Promise.all([recentGamesCard(id), splitsCard(id)]).then(([games, splits]) => {
+      const el = $("#recentForm"); if (!el || (!games && !splits)) return;
       el.innerHTML = `<div class="section-title" style="margin-top:26px"><div><h2>Recent form</h2></div><a class="link" href="#/games/player/${id}">All games →</a></div>
-        <div class="two-col">${games || ""}${right ? `<div class="stack">${right}</div>` : ""}</div>`;
-      wirePropTrends(el); wireGameLog(el);
+        <div class="two-col">${games || ""}${splits ? `<div class="stack">${splits}</div>` : ""}</div>`;
+      wireGameLog(el);
     });
     if (active) fillRanks(p);   // rank pips are current-season only
     twoKCard(id).then((html) => { const el = $("#sec-2k"); if (el && html) el.innerHTML = html; });
