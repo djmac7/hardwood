@@ -1791,7 +1791,7 @@
       if (p) return `<div class="cmp-head" style="--tc:${tColor(p.cur.team)}">
         ${headshot(p.id, p.name, p.cur.team, "hero")}
         <div class="cmp-id"><a class="nm" href="#/player/${p.id}">${esc(p.name)}</a>
-          <div class="sub">${esc(p.cur.pos || "")} · ${seasonLabel(p.log[0][0])}–${String(p.log[p.log.length - 1][0]).slice(2)}</div>
+          <div class="sub">${esc(p.cur.pos || "")} · ${p.log.length} season${p.log.length > 1 ? "s" : ""}</div>
           ${basisSelect(p, which)}</div>
         <div class="cmp-search"><input class="cmpSearch" data-slot="${which}" data-other="${other}" placeholder="Change…" autocomplete="off" spellcheck="false"><div class="results"></div></div></div>`;
       return `<div class="cmp-head empty">
