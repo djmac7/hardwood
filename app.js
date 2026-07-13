@@ -1140,10 +1140,12 @@
     const ovr = r.ovr || 0;
     const tier = ovr >= 95 ? "Legend" : ovr >= 90 ? "Superstar" : ovr >= 85 ? "All-Star" : ovr >= 80 ? "Starter" : ovr >= 75 ? "Rotation" : "Reserve";
     const bar = (lab, v) => `<div class="tk-attr"><div class="tk-lab">${lab}</div><div class="tk-meter"><i style="width:${v}%"></i></div><div class="tk-val">${v}</div></div>`;
-    return `<div class="section-title" style="margin-top:26px"><div><h2>NBA 2K rating</h2></div><span class="hint">${esc(d.edition)}</span></div>
-      <div class="card pad twok">
-        <div class="tk-badge"><div class="tk-ovr">${ovr}</div><div class="tk-ovr-l">Overall</div><div class="tk-tier">${tier}</div></div>
-        <div class="tk-attrs">${cats.map(([l, v]) => bar(l, v)).join("")}</div>
+    return `<div class="card pad" style="margin-top:26px">
+        <div class="card-h"><h3>NBA 2K rating</h3><span class="hint">${esc(d.edition)}</span></div>
+        <div class="twok">
+          <div class="tk-badge"><div class="tk-ovr">${ovr}</div><div class="tk-ovr-l">Overall</div><div class="tk-tier">${tier}</div></div>
+          <div class="tk-attrs">${cats.map(([l, v]) => bar(l, v)).join("")}</div>
+        </div>
       </div>`;
   }
 
@@ -1558,9 +1560,9 @@
         <span class="sw" style="background:${shotFill(r.d.pct, maxPct)}"></span>
         <span class="knm">${r.name}</span>
         <span class="kmeta"><b>${Math.round(r.d.pct * 100)}%</b><span class="ks">of shots</span><span class="kdot">·</span>${r.d.fg == null ? "—" : pctf(r.d.fg)}<span class="ks">FG</span></span></div>`).join("");
-      mount.innerHTML = `<div class="section-title" style="margin-top:26px"><div><span class="eyebrow">Frequency &amp; efficiency by distance</span><h2>Shot tendencies</h2></div>
-        <label class="season-select"><span>Season</span><select class="mini-select" id="shotSeasonSel">${years.map((y) => `<option value="${y}" ${y === yr ? "selected" : ""}>${seasonLabel(y)}</option>`).join("")}</select></label></div>
-        <div class="card pad shot-card">
+      mount.innerHTML = `<div class="card pad shot-card" style="margin-top:26px">
+          <div class="card-h"><h3>Shot tendencies</h3>
+            <label class="season-select"><span>Season</span><select class="mini-select" id="shotSeasonSel">${years.map((y) => `<option value="${y}" ${y === yr ? "selected" : ""}>${seasonLabel(y)}</option>`).join("")}</select></label></div>
           <p class="shot-lead"><b>${esc(top.name)}</b> made up ${Math.round(top.d.pct * 100)}% of their attempts — more than any other range. On the court, darker means more frequent; each label is the field-goal % from that range.</p>
           <div class="shot-grid">
             <div class="shot-court-wrap">
