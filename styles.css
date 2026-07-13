@@ -294,8 +294,11 @@ table.ref tbody tr.clickable{cursor:pointer}
 
 /* ---------------- player page ---------------- */
 .phead{position:relative;border-radius:18px;overflow:hidden;border:1px solid var(--line);box-shadow:var(--shadow);margin-bottom:24px}
-.phead .band{position:absolute;inset:0;opacity:.14}
-.phead .inner{position:relative;display:grid;grid-template-columns:auto 1fr;gap:26px;padding:26px 28px;background:linear-gradient(180deg,color-mix(in srgb,var(--panel) 86%,transparent),var(--panel))}
+.phead .band{position:absolute;inset:0;opacity:.16;
+  -webkit-mask-image:radial-gradient(120% 105% at 14% -30%,#000 0%,transparent 60%);
+  mask-image:radial-gradient(120% 105% at 14% -30%,#000 0%,transparent 60%)}
+.phead .inner{position:relative;display:grid;grid-template-columns:auto 1fr;gap:26px;padding:26px 28px;
+  background:linear-gradient(160deg,color-mix(in srgb,var(--panel) 80%,transparent) 0%,var(--panel) 52%)}
 .jersey{width:118px;height:118px;border-radius:16px;display:grid;place-items:center;color:#fff;position:relative;flex:none;box-shadow:var(--shadow)}
 .jersey .num{font-family:var(--serif);font-weight:700;font-size:56px;line-height:1;text-shadow:0 2px 16px rgba(0,0,0,.25)}
 .jersey .ab{position:absolute;bottom:9px;font-family:var(--mono);font-size:11px;letter-spacing:.1em;opacity:.9}
@@ -1290,6 +1293,7 @@ table.ref tr.benchsep td{border-top:1px solid var(--line-strong)}
    shrink below their content's intrinsic width — otherwise the table's min-content
    widens the grid item (and the whole page) instead of scrolling inside .tbl-wrap */
 .two-col>*,.col2grid>*,.stack{min-width:0}
+.stack{display:flex;flex-direction:column;gap:22px}   /* separate stacked cards (e.g. Recent splits + Prop trends) */
 
 /* ---- performance: backdrop-filter blur on sticky bars is the main cause of
    scroll jank on phones (the browser re-blurs the page every frame, and here
@@ -1382,3 +1386,73 @@ table.ref tr.benchsep td{border-top:1px solid var(--line-strong)}
 .data-refreshed{display:flex;align-items:center;gap:7px;margin-top:10px!important}
 .data-refreshed .dr-dot{width:7px;height:7px;border-radius:50%;background:var(--accent);
   box-shadow:0 0 0 3px var(--accent-soft);flex:none}
+
+/* ============================================================
+   Play — Daily NBA Grid archive/win, Stat Duel, Buzzer Beater
+   ============================================================ */
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.btn.primary:hover{background:var(--accent-deep);border-color:var(--accent-deep);color:#fff}
+
+/* grid corner mark (was an emoji) + scoreline */
+.gg-corner{opacity:1}
+.gg-corner-mark{font-family:var(--mono);font-size:11px;letter-spacing:.12em;font-weight:600;color:var(--ink-3)}
+.gg-scoreline{display:block;margin:0 0 16px}
+
+/* grid completion / achievement screen */
+.gg-win{position:fixed;inset:0;z-index:210;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;transition:opacity .2s}
+.gg-win.show{opacity:1}
+.gg-win-backdrop{position:absolute;inset:0;background:color-mix(in srgb,var(--bg-sunk) 66%,transparent);backdrop-filter:blur(5px)}
+.gg-win-card{position:relative;width:min(420px,100%);background:var(--panel);border:1px solid var(--line);
+  border-radius:20px;box-shadow:0 30px 80px rgba(0,0,0,.45);padding:34px 28px 26px;text-align:center;
+  transform:translateY(10px) scale(.97);transition:transform .24s cubic-bezier(.2,.9,.3,1.2)}
+.gg-win.show .gg-win-card{transform:none}
+.gg-win-badge{width:64px;height:64px;margin:0 auto 16px;border-radius:50%;display:grid;place-items:center;
+  color:#fff;background:var(--accent);box-shadow:0 0 0 8px var(--accent-wash)}
+.gg-win-badge svg{width:32px;height:32px}
+.gg-win-card h2{font-size:28px;margin:6px 0 8px}
+.gg-win-card p{color:var(--ink-2);font-size:14.5px;line-height:1.55;margin:0 auto 20px;max-width:34ch}
+.gg-win-cta{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+
+/* Stat Duel */
+.duel{max-width:640px}
+.duel-q{text-align:center;font-size:18px;font-weight:500;margin-bottom:18px;color:var(--ink)}
+.duel-q b{color:var(--accent-deep)}
+.duel-row{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px}
+.duel-vs{font-family:var(--mono);font-size:12px;letter-spacing:.1em;color:var(--ink-4);font-weight:600}
+.duel-card{display:flex;flex-direction:column;align-items:center;gap:8px;padding:22px 16px;background:var(--panel);
+  border:1px solid var(--line);border-radius:16px;cursor:pointer;transition:.15s;text-align:center;box-shadow:var(--shadow-sm)}
+.duel-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:var(--shadow)}
+.duel-card .ava.hero{width:88px;height:88px;border-radius:16px}
+.duel-nm{font-family:var(--serif);font-size:17px;font-weight:600;line-height:1.15}
+.duel-tm{font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+.duel-val{font-family:var(--serif);font-size:26px;font-weight:600;color:var(--ink-4);margin-top:2px;font-variant-numeric:tabular-nums;transition:color .2s}
+.duel-card.win{border-color:var(--good);background:color-mix(in srgb,var(--good) 8%,var(--panel))}
+.duel-card.win .duel-val{color:var(--good)}
+.duel-card.lose{opacity:.55}
+.duel-card.win,.duel-card.lose{cursor:default;pointer-events:none}
+.duel-over{text-align:center;padding:40px 20px}
+.duel-over-score{font-family:var(--serif);font-size:64px;font-weight:600;line-height:1;color:var(--accent-deep);margin:8px 0}
+.duel-over p{color:var(--ink-2);margin:0 0 20px}
+
+/* Buzzer Beater */
+.buzzer{max-width:520px;margin:0 auto;display:flex;flex-direction:column;align-items:center;gap:22px}
+.bz-court{position:relative;width:100%;height:150px;display:grid;place-items:center}
+.bz-hoop{width:150px;height:100px;color:var(--ink-3)}
+.bz-ball{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:26px;height:26px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,var(--accent),var(--accent-deep));box-shadow:inset 0 -3px 6px rgba(0,0,0,.25)}
+.bz-ball.make{animation:bz-make .5s ease forwards}
+.bz-ball.miss{animation:bz-miss .5s ease forwards}
+@keyframes bz-make{0%{bottom:8px;opacity:1}60%{bottom:118px;opacity:1}100%{bottom:118px;opacity:0}}
+@keyframes bz-miss{0%{bottom:8px;transform:translateX(-50%) rotate(0)}100%{bottom:96px;transform:translateX(120px) rotate(90deg);opacity:0}}
+.bz-track{position:relative;width:100%;height:24px;border-radius:12px;background:var(--bg-sunk);border:1px solid var(--line);overflow:hidden}
+.bz-zone{position:absolute;top:0;bottom:0;background:color-mix(in srgb,var(--good) 34%,transparent);border-left:2px solid var(--good);border-right:2px solid var(--good)}
+.bz-marker{position:absolute;top:-3px;bottom:-3px;width:4px;border-radius:3px;background:var(--ink);left:0;transform:translateX(-50%);box-shadow:0 0 8px var(--accent)}
+.bz-shoot{min-width:180px;font-size:15px;padding:12px 24px}
+.bz-lives{display:flex;gap:8px}
+.bz-life{width:11px;height:11px;border-radius:50%;background:var(--line-strong)}
+.bz-life.on{background:var(--accent)}
+@media (max-width:560px){
+  .duel-card{padding:16px 10px}.duel-card .ava.hero{width:66px;height:66px}
+  .duel-nm{font-size:14px}.duel-val{font-size:22px}.duel-q{font-size:15px}
+  .gg-win-card h2{font-size:24px}
+}

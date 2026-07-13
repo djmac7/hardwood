@@ -559,21 +559,31 @@
   /* ================= PLAY / PUZZLES ================= */
   const GRID_POOL = ["LAL", "BOS", "GSW", "CHI", "MIA", "NYK", "PHI", "DAL", "DEN", "MIL", "PHX", "SAS", "HOU", "CLE", "TOR", "ATL", "MEM", "OKC", "MIN", "SAC", "IND", "POR", "WAS", "DET", "ORL", "NOP", "CHA", "UTA", "BKN", "LAC"];
   const mulberry = (a) => () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
-  function daySeed() { const d = new Date().toISOString().slice(0, 10); let h = 2166136261; for (const c of d) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
+  function daySeed(dateStr) { const d = dateStr || new Date().toISOString().slice(0, 10); let h = 2166136261; for (const c of d) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
+  // Every date the Daily NBA Grid has a board for: from launch (Jul 4 2026) through today, newest first.
+  const GRID_START = "2026-07-04";
+  function gridDates() {
+    const today = new Date().toISOString().slice(0, 10);
+    const cur = today >= GRID_START ? today : GRID_START;
+    const start = new Date(GRID_START + "T00:00:00Z");
+    const out = []; let d = new Date(cur + "T00:00:00Z");
+    while (d >= start && out.length < 400) { out.push(d.toISOString().slice(0, 10)); d.setUTCDate(d.getUTCDate() - 1); }
+    return out;
+  }
+  const gridDone = () => { try { return JSON.parse(localStorage.getItem("hw-grid-done") || "[]"); } catch (e) { return []; } };
+  const markGridDone = (date) => { try { const s = new Set(gridDone()); s.add(date); localStorage.setItem("hw-grid-done", JSON.stringify([...s])); } catch (e) {} };
   // franchise-relocation aliases so career-team checks count e.g. Sonics as OKC
   const FRANCHISE = { OKC: ["OKC", "SEA"], WAS: ["WAS", "WSB"], UTA: ["UTA", "NOJ"], SAC: ["SAC", "KCK"], BKN: ["BKN", "NJN"], NOP: ["NOP", "NOH", "NOK"], MEM: ["MEM", "VAN"], LAC: ["LAC", "SDC", "BUF"], CHA: ["CHA", "CHH"], HOU: ["HOU", "SDR"], GSW: ["GSW", "SFW", "PHW"], DET: ["DET", "FTW"], ATL: ["ATL", "STL", "MLH"], PHI: ["PHI", "SYR"], LAL: ["LAL", "MNL"] };
   const teamAliases = (ab) => new Set(FRANCHISE[ab] || [ab]);
 
   // Launcher hub — restrained, editorial: monogram marks, one accent, no clutter.
   async function renderPlay() {
-    setSEO("Play — NBA Games & Puzzles", "A hub of daily NBA games — the Immaculate Grid, Six Spins and more.");
+    setSEO("Play — NBA Games & Puzzles", "NBA games and puzzles: the Daily NBA Grid, Stat Duel, Buzzer Beater and Six Spins.");
     const games = [
-      { t: "Immaculate Grid", d: "Fill every square with a player who suited up for both teams.", tag: "New board daily", href: "#/play/grid", live: true },
-      { t: "Six Spins", d: "Name the mystery player from six cascading clues.", tag: "Play here", href: "#/play/sixspins" },
-      { t: "82-0", d: "Draft a lineup and chase a perfect season.", tag: "Six Spins", href: "https://sixspins.com", ext: true },
-      { t: "Career Path", d: "Guess the player from their team history alone.", tag: "Six Spins", href: "https://sixspins.com", ext: true },
-      { t: "Daily Streak", d: "One question a day — keep the run alive.", tag: "Six Spins", href: "https://sixspins.com", ext: true },
-      { t: "Top 10", d: "Rank the all-time leaders against the clock.", tag: "Six Spins", href: "https://sixspins.com", ext: true },
+      { t: "Daily NBA Grid", d: "Fill every square with a player who suited up for both teams. New board every day.", tag: "New board daily", href: "#/play/grid", live: true },
+      { t: "Stat Duel", d: "Higher or lower — pick the player with the bigger career number. Build a streak.", tag: "Endless", href: "#/play/duel", live: true },
+      { t: "Buzzer Beater", d: "Time your release in the sweet spot and sink as many as you can before the miss meter fills.", tag: "Arcade", href: "#/play/buzzer" },
+      { t: "Six Spins", d: "A continuous build — keep spinning to draft attributes toward a 99-overall player.", tag: "Continuous", href: "#/play/sixspins" },
     ];
     const mono = (t) => (t.replace(/[^A-Za-z0-9 ]/g, "").split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join("") || t.slice(0, 2)).toUpperCase();
     const tile = (g) => `<a class="ptile${g.live ? " live" : ""}" href="${g.href}" ${g.ext ? 'target="_blank" rel="noopener noreferrer"' : ""}>
@@ -582,13 +592,13 @@
       <span class="ptile-go">${g.ext ? "↗" : "→"}</span></a>`;
     app.innerHTML = `<div class="wrap page">
       <div class="crumb"><a href="#/">Home</a><span class="sep">/</span><span>Play</span></div>
-      <div class="section-title"><div><span class="eyebrow">Daily NBA games</span><h2>Play</h2></div></div>
-      <a class="ss-hero" href="#/play/sixspins">
-        <div class="ss-hero-l"><span class="eyebrow">Featured · Six Spins</span>
-          <h3>Guess the player in six spins.</h3>
-          <p>Our daily NBA guessing game — one shared puzzle for everyone, cascading clues, a fresh challenge every day.</p>
-          <span class="ss-hero-cta">Play now <span>→</span></span></div>
-        <div class="ss-hero-mark"><span>SIX</span><span>SPINS</span></div>
+      <div class="section-title"><div><span class="eyebrow">NBA games &amp; puzzles</span><h2>Play</h2></div></div>
+      <a class="ss-hero" href="#/play/grid">
+        <div class="ss-hero-l"><span class="eyebrow">Featured · Daily NBA Grid</span>
+          <h3>One new grid, every day.</h3>
+          <p>Name a player who suited up for both the row's and column's team in each of the nine squares. Come back tomorrow for a fresh board — or dig through the archive.</p>
+          <span class="ss-hero-cta">Play today's grid <span>→</span></span></div>
+        <div class="ss-hero-mark"><span>NBA</span><span>GRID</span></div>
       </a>
       <div class="section-title small" style="margin-top:26px"><div><h2>All games</h2></div></div>
       <div class="ptiles">${games.map(tile).join("")}</div>
@@ -597,34 +607,43 @@
 
   // Six Spins embedded in-site (keeps players on Hardwood; framing is allowed).
   function renderSixSpins() {
-    setSEO("Six Spins — Play", "Play Six Spins, the daily NBA guessing game.");
+    setSEO("Six Spins — Play", "Play Six Spins — a continuous NBA game where you spin clues to build a 99-overall player.");
     app.innerHTML = `<div class="wrap page">
       <div class="crumb"><a href="#/">Home</a><span class="sep">/</span><a href="#/play">Play</a><span class="sep">/</span><span>Six Spins</span></div>
-      <div class="section-title"><div><span class="eyebrow">Daily · embedded</span><h2>Six Spins</h2></div><a class="link" href="https://sixspins.com" target="_blank" rel="noopener noreferrer">Open full ↗</a></div>
-      <div class="embed-frame"><iframe src="https://sixspins.com" title="Six Spins — daily NBA guessing game" loading="lazy" allow="fullscreen"></iframe></div>
+      <div class="section-title"><div><span class="eyebrow">Continuous build · embedded</span><h2>Six Spins</h2></div><a class="link" href="https://sixspins.com" target="_blank" rel="noopener noreferrer">Open full ↗</a></div>
+      <div class="embed-frame"><iframe src="https://sixspins.com" title="Six Spins — build a 99-overall NBA player" loading="lazy" allow="fullscreen"></iframe></div>
     </div>`;
   }
 
-  // Immaculate Grid — its own board, launched from the hub.
-  async function renderPlayGrid() {
-    const [r0, r1, r2, c0, c1, c2] = (() => { const rnd = mulberry(daySeed()), a = GRID_POOL.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a.slice(0, 6); })();
+  // Daily NBA Grid — a new board every day, with an archive back to launch.
+  async function renderPlayGrid(dateStr) {
+    const dates = gridDates();
+    const date = (dateStr && dates.includes(dateStr)) ? dateStr : dates[0];
+    const isToday = date === dates[0];
+    const done = new Set(gridDone());
+    const [r0, r1, r2, c0, c1, c2] = (() => { const rnd = mulberry(daySeed(date)), a = GRID_POOL.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a.slice(0, 6); })();
     const rows = [r0, r1, r2], cols = [c0, c1, c2];
     const head = (ab) => `<div class="gg-head">${teamLogo(ab, "sm")}<span>${ab}</span></div>`;
-    setSEO("Immaculate Grid — Play", "Name a player who played for both teams in each square. A new NBA grid every day.");
+    const dayLabel = (d) => (d === dates[0] ? "Today" : fmtDate(d, true));
+    setSEO("Daily NBA Grid — Play", "Name a player who played for both teams in each square. A new NBA grid every day, with a full archive.");
     app.innerHTML = `<div class="wrap page">
-      <div class="crumb"><a href="#/">Home</a><span class="sep">/</span><a href="#/play">Play</a><span class="sep">/</span><span>Immaculate Grid</span></div>
-      <div class="section-title"><div><span class="eyebrow">Today's board</span><h2>Immaculate Grid</h2></div><span class="hint" id="ggScore">0 / 9 filled</span></div>
+      <div class="crumb"><a href="#/">Home</a><span class="sep">/</span><a href="#/play">Play</a><span class="sep">/</span><span>Daily NBA Grid</span></div>
+      <div class="section-title"><div><span class="eyebrow">${isToday ? "Today's board" : "Archive · " + fmtDate(date, true)}</span><h2>Daily NBA Grid</h2></div>
+        <label class="season-select"><span>Board</span><select id="gridSel">${dates.map((d) => `<option value="${d}" ${d === date ? "selected" : ""}>${dayLabel(d)}${done.has(d) ? " ✓" : ""}</option>`).join("")}</select></label></div>
+      <span class="hint gg-scoreline" id="ggScore">0 / 9 filled</span>
       <div class="grid-game" id="ggBoard">
-        <div class="gg-corner">🏀</div>
+        <div class="gg-corner"><span class="gg-corner-mark">NBA</span></div>
         ${cols.map(head).join("")}
         ${rows.map((rab) => `${head(rab)}${cols.map((cab) => `<button class="gg-cell" data-r="${rab}" data-c="${cab}" aria-label="${rab} and ${cab}"><span class="gg-plus">+</span></button>`).join("")}`).join("")}
       </div>
-      <p class="news-foot" style="margin-top:14px">Tap a square and name a player who suited up for <b>both</b> that row's and column's team (all-time). A new grid every day. <a class="link" href="#/play">← All games</a></p>
+      <p class="news-foot" style="margin-top:14px">Tap a square and name a player who suited up for <b>both</b> that row's and column's team (all-time). A new grid unlocks every day — past boards stay in the archive. <a class="link" href="#/play">← All games</a></p>
     </div>`;
-    wireGrid(rows, cols);
+    const sel = $("#gridSel");
+    if (sel) sel.addEventListener("change", (e) => { const v = e.target.value; location.hash = v === dates[0] ? "#/play/grid" : "#/play/grid/" + v; });
+    wireGrid(rows, cols, date);
   }
 
-  function wireGrid(rows, cols) {
+  function wireGrid(rows, cols, date) {
     let filled = 0;
     const modal = document.createElement("div");
     modal.className = "gg-modal"; modal.hidden = true;
@@ -653,6 +672,7 @@
         active.cell.classList.add("done"); active.cell.innerHTML = `${headshot(pid, nm, "", "sm")}<span class="gg-nm">${esc(nm)}</span>`;
         active.cell.onclick = null; filled++; $("#ggScore").textContent = `${filled} / 9 filled`;
         close();
+        if (filled === 9) { markGridDone(date); setTimeout(() => showGridWin(date), 260); }
       } else { msg.textContent = `${nm} didn't play for both — try again.`; msg.className = "gg-msg bad"; }
     });
     $$("#ggBoard .gg-cell").forEach((cell) => cell.addEventListener("click", () => {
@@ -663,6 +683,151 @@
       modal.hidden = false; document.body.classList.add("cmdk-open");
       requestAnimationFrame(() => input.focus());
     }));
+  }
+
+  // Achievement screen shown when a grid is completed 9/9.
+  function showGridWin(date) {
+    const ds = gridDates(), today = ds[0];
+    const el = document.createElement("div");
+    el.className = "gg-win";
+    el.innerHTML = `<div class="gg-win-backdrop"></div>
+      <div class="gg-win-card" role="dialog" aria-modal="true" aria-label="Grid complete">
+        <div class="gg-win-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></div>
+        <span class="eyebrow">Grid complete</span>
+        <h2>Nine for nine.</h2>
+        <p>You filled every square on the ${date === today ? "today's" : fmtDate(date, true)} board. A fresh grid unlocks each day — the archive keeps the rest.</p>
+        <div class="gg-win-cta">
+          <button class="btn primary" id="ggWinAnother">Play another board</button>
+          <a class="btn" href="#/play">All games</a>
+        </div>
+      </div>`;
+    document.body.appendChild(el);
+    document.body.classList.add("cmdk-open");
+    const close = () => { el.remove(); document.body.classList.remove("cmdk-open"); };
+    el.querySelector(".gg-win-backdrop").addEventListener("click", close);
+    el.querySelector("#ggWinAnother").addEventListener("click", () => {
+      close(); const i = ds.indexOf(date), next = ds[i + 1] || ds[Math.max(0, i - 1)] || ds[0];
+      location.hash = next === ds[0] ? "#/play/grid" : "#/play/grid/" + next;
+    });
+    requestAnimationFrame(() => el.classList.add("show"));
+  }
+
+  // ---- Stat Duel — higher-or-lower on all-time career totals ----
+  async function renderStatDuel() {
+    let A; try { A = await getAlltime(); } catch { return notFound("game"); }
+    const CATS = { pts: "points", trb: "rebounds", ast: "assists", stl: "steals", blk: "blocks", x3p: "three-pointers made", g: "games played" };
+    const keys = Object.keys(CATS).filter((k) => (A.career[k] || []).length >= 8);
+    let streak = 0, best = +(localStorage.getItem("hw-duel-best") || 0), locked = false, cur = null;
+    setSEO("Stat Duel — Play", "Higher or lower — pick the NBA player with the bigger career number, and build a streak.");
+    const pickPair = () => {
+      const cat = keys[Math.floor(Math.random() * keys.length)], pool = A.career[cat];
+      let i = Math.floor(Math.random() * pool.length), j;
+      do { j = Math.floor(Math.random() * pool.length); } while (j === i || pool[j][3] === pool[i][3]);
+      return { cat, a: pool[i], b: pool[j] };
+    };
+    const card = (p, side) => `<button class="duel-card" data-side="${side}">
+      ${headshot(p[0], p[1], p[2], "hero")}<span class="duel-nm">${esc(p[1])}</span>
+      <span class="duel-tm">${esc(p[2])} · ${p[4] - 1}–${p[5]}</span>
+      <span class="duel-val" aria-hidden="true">?</span></button>`;
+    app.innerHTML = `<div class="wrap page">
+      <div class="crumb"><a href="#/">Home</a><span class="sep">/</span><a href="#/play">Play</a><span class="sep">/</span><span>Stat Duel</span></div>
+      <div class="section-title"><div><span class="eyebrow">Higher or lower · career totals</span><h2>Stat Duel</h2></div>
+        <span class="hint"><span id="duelStreak">0</span> streak · best <span id="duelBest">${best}</span></span></div>
+      <div class="duel" id="duelArena"></div>
+      <p class="news-foot" style="margin-top:14px">Tap the player with the bigger career total. One wrong pick ends the run. <a class="link" href="#/play">← All games</a></p>
+    </div>`;
+    const arena = $("#duelArena");
+    function draw() {
+      cur = pickPair();
+      arena.innerHTML = `<div class="duel-q">Who logged more career <b>${CATS[cur.cat]}</b>?</div>
+        <div class="duel-row">${card(cur.a, "a")}<span class="duel-vs">VS</span>${card(cur.b, "b")}</div>`;
+      locked = false;
+      $$(".duel-card", arena).forEach((c) => c.addEventListener("click", () => choose(c.dataset.side)));
+    }
+    function choose(side) {
+      if (locked) return; locked = true;
+      const win = cur.a[3] >= cur.b[3] ? "a" : "b";
+      $$(".duel-card", arena).forEach((c) => {
+        const p = c.dataset.side === "a" ? cur.a : cur.b;
+        c.querySelector(".duel-val").textContent = p[3].toLocaleString();
+        c.classList.add(c.dataset.side === win ? "win" : "lose");
+      });
+      if (side === win) {
+        streak++; $("#duelStreak").textContent = streak;
+        if (streak > best) { best = streak; localStorage.setItem("hw-duel-best", best); $("#duelBest").textContent = best; }
+        setTimeout(draw, 1150);
+      } else {
+        setTimeout(() => duelOver(), 1200);
+      }
+    }
+    function duelOver() {
+      arena.innerHTML = `<div class="duel-over">
+        <span class="eyebrow">Run over</span><div class="duel-over-score">${streak}</div>
+        <p>${streak === best && streak > 0 ? "A new best streak!" : "Best streak: " + best}</p>
+        <button class="btn primary" id="duelAgain">Play again</button></div>`;
+      streak = 0; $("#duelStreak").textContent = 0;
+      $("#duelAgain").addEventListener("click", draw);
+    }
+    draw();
+  }
+
+  // ---- Buzzer Beater — timing-bar arcade shooting ----
+  async function renderBuzzer() {
+    setSEO("Buzzer Beater — Play", "Time your release in the sweet spot and sink as many NBA buckets as you can.");
+    const best = +(localStorage.getItem("hw-buzzer-best") || 0);
+    app.innerHTML = `<div class="wrap page">
+      <div class="crumb"><a href="#/">Home</a><span class="sep">/</span><a href="#/play">Play</a><span class="sep">/</span><span>Buzzer Beater</span></div>
+      <div class="section-title"><div><span class="eyebrow">Arcade · timing</span><h2>Buzzer Beater</h2></div>
+        <span class="hint"><span id="bzScore">0</span> made · best <span id="bzBest">${best}</span></span></div>
+      <div class="buzzer" id="bzArena">
+        <div class="bz-court">
+          <svg class="bz-hoop" viewBox="0 0 120 80" aria-hidden="true"><rect x="52" y="6" width="16" height="26" rx="2" fill="none" stroke="currentColor" stroke-width="2.5"/><line x1="44" y1="34" x2="76" y2="34" stroke="var(--accent)" stroke-width="3"/><path d="M46 35 L50 48 M74 35 L70 48 M54 35 L56 50 M66 35 L64 50 M60 35 L60 51" stroke="var(--accent-deep)" stroke-width="1.4" fill="none" opacity=".8"/></svg>
+          <div class="bz-ball" id="bzBall"></div>
+        </div>
+        <div class="bz-track" id="bzTrack"><div class="bz-zone" id="bzZone"></div><div class="bz-marker" id="bzMarker"></div></div>
+        <button class="btn primary bz-shoot" id="bzShoot">Shoot</button>
+        <div class="bz-lives" id="bzLives"></div>
+      </div>
+      <p class="news-foot" style="margin-top:14px">Tap <b>Shoot</b> (or press Space) when the marker is inside the green zone. It gets faster and tighter as you go — three misses and it's over. <a class="link" href="#/play">← All games</a></p>
+    </div>`;
+    const marker = $("#bzMarker"), zoneEl = $("#bzZone"), ball = $("#bzBall"), livesEl = $("#bzLives");
+    let pos = 0, dir = 1, spd = 0.85, zone = 0.26, score = 0, misses = 0, over = false, raf = 0, last = performance.now();
+    const setLives = () => { livesEl.innerHTML = [0, 1, 2].map((i) => `<span class="bz-life${i < 3 - misses ? " on" : ""}"></span>`).join(""); };
+    const setZone = () => { const c = 0.5; zoneEl.style.left = ((c - zone / 2) * 100) + "%"; zoneEl.style.width = (zone * 100) + "%"; };
+    setLives(); setZone();
+    function loop(t) {
+      if (over || !document.body.contains(marker)) return;
+      const dt = Math.min(0.05, (t - last) / 1000); last = t;
+      pos += dir * spd * dt; if (pos > 1) { pos = 1; dir = -1; } else if (pos < 0) { pos = 0; dir = 1; }
+      marker.style.left = (pos * 100) + "%";
+      raf = requestAnimationFrame(loop);
+    }
+    raf = requestAnimationFrame(loop);
+    function shoot() {
+      if (over) return;
+      const made = Math.abs(pos - 0.5) <= zone / 2;
+      ball.classList.remove("make", "miss"); void ball.offsetWidth;
+      if (made) {
+        score++; $("#bzScore").textContent = score; ball.classList.add("make");
+        spd = Math.min(2.4, spd + 0.09); zone = Math.max(0.09, zone - 0.012); setZone();
+        if (score > best) { localStorage.setItem("hw-buzzer-best", score); $("#bzBest").textContent = score; }
+      } else {
+        misses++; ball.classList.add("miss"); setLives();
+        if (misses >= 3) return bzOver();
+      }
+    }
+    function bzOver() {
+      over = true; cancelAnimationFrame(raf);
+      $("#bzArena").innerHTML = `<div class="duel-over"><span class="eyebrow">Final buzzer</span>
+        <div class="duel-over-score">${score}</div><p>buckets made${score >= best && score > 0 ? " · new best!" : " · best " + best}</p>
+        <button class="btn primary" id="bzAgain">Shoot again</button></div>`;
+      $("#bzAgain").addEventListener("click", renderBuzzer);
+    }
+    $("#bzShoot").addEventListener("click", shoot);
+    const keyh = (e) => { if (e.key === " " || e.code === "Space") { e.preventDefault(); shoot(); } };
+    document.addEventListener("keydown", keyh);
+    // stop listening once the arena is gone
+    const obs = setInterval(() => { if (!document.body.contains(marker)) { document.removeEventListener("keydown", keyh); cancelAnimationFrame(raf); clearInterval(obs); } }, 1000);
   }
 
   async function renderNews() {
@@ -1076,7 +1241,7 @@
               ${draft ? (draft.undrafted ? bioItem("Draft", "Undrafted") : bioItem("Draft", `${draft.year} · Rd ${draft.round}, Pk ${draft.overall}${isRealTeam(draft.team) ? " · " + draft.team : ""}`)) : ""}
               ${b.college ? bioItem("College", esc(b.college)) : ""}
             </div>
-            <div class="chip-row">${p.acc.length ? p.acc.map((a) => { const d = accDetail(a.t, p.accy); return `<span class="chip ${a.g ? "gold" : ""}${d ? " has-detail" : ""}"${d ? ` data-acc="${esc(a.t)}" data-years="${esc(d)}"` : ""}>${a.g ? "★ " : ""}${esc(a.t)}</span>`; }).join("") : `<span class="muted" style="font-size:13px">${esc(p.name)} played ${p.log.length} season${p.log.length > 1 ? "s" : ""} in the ${p.log[0][1]}.</span>`}</div>
+            <div class="chip-row">${p.acc.length ? p.acc.map((a) => { const d = accDetail(a.t, p.accy) || accDesc(a.t); return `<span class="chip ${a.g ? "gold" : ""} has-detail" data-acc="${esc(a.t)}" data-years="${esc(d)}">${a.g ? "★ " : ""}${esc(a.t)}</span>`; }).join("") : `<span class="muted" style="font-size:13px">${esc(p.name)} played ${p.log.length} season${p.log.length > 1 ? "s" : ""} in the ${p.log[0][1]}.</span>`}</div>
             <div id="playerInjury"></div>
           </div>
         </div>
@@ -1263,6 +1428,24 @@
     if (t.includes("sixth man")) return yrs(accy.smoy);
     if (t.includes("most improved")) return yrs(accy.mip);
     return "";
+  }
+  // Fallback tooltip text so EVERY accolade chip has a tooltip, even without year data.
+  function accDesc(title) {
+    const t = title.toLowerCase();
+    if (t.includes("finals mvp")) return "Most Valuable Player of the NBA Finals.";
+    if (t.includes("mvp")) return "Regular-season Most Valuable Player.";
+    if (t.includes("all-star")) return "Selected to the NBA All-Star Game.";
+    if (t.includes("all-nba")) return "All-NBA Team — the league's best players by position.";
+    if (t.includes("all-defensive") || t.includes("all-defense")) return "All-Defensive Team selection.";
+    if (t.includes("all-rookie")) return "All-Rookie Team selection.";
+    if (t.includes("rookie of the year")) return "Best first-year player.";
+    if (t.includes("defensive player")) return "Defensive Player of the Year.";
+    if (t.includes("sixth man")) return "Best player primarily off the bench.";
+    if (t.includes("most improved")) return "Most Improved Player of the year.";
+    if (t.includes("scoring")) return "Led the NBA in points per game.";
+    if (t.includes("champion")) return "NBA champion.";
+    if (t.includes("hall of fame") || t.includes("hof")) return "Naismith Memorial Basketball Hall of Fame.";
+    return "Career honor.";
   }
   function wireAccHover(scope) {
     $$(".chip.has-detail", scope).forEach((c) => {
@@ -2018,7 +2201,7 @@
       else if (seg === "draft") await renderDraft(arg);
       else if (seg === "compare") await renderCompare(arg === "_" ? null : arg, parts[2] === "_" ? null : parts[2]);
       else if (seg === "news") await renderNews();
-      else if (seg === "play") await (arg === "grid" ? renderPlayGrid() : arg === "sixspins" ? renderSixSpins() : renderPlay());
+      else if (seg === "play") await (arg === "grid" ? renderPlayGrid(parts[2]) : arg === "sixspins" ? renderSixSpins() : arg === "duel" ? renderStatDuel() : arg === "buzzer" ? renderBuzzer() : renderPlay());
       else if (seg === "betting") await renderBetting();
       else if (seg === "settings") { await renderHome(); openSettings(); }
       else if (seg === "terms") renderTerms();

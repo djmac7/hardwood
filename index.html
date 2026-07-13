@@ -28,7 +28,7 @@
 <link rel="stylesheet" href="ds/tokens.css" />
 <!-- apply saved appearance before first paint (no flash of wrong theme) -->
 <script>try{var t=localStorage.getItem('hw-theme');if(t&&t!=='system')document.documentElement.setAttribute('data-theme',t);if(localStorage.getItem('hw-density')==='compact')document.documentElement.setAttribute('data-density','compact');}catch(e){}</script>
-<link rel="stylesheet" href="styles.css?v=72" />
+<link rel="stylesheet" href="styles.css?v=74" />
 </head>
 <body>
 
@@ -45,13 +45,13 @@
       <a href="#/games" data-route="games">Scores</a>
       <a href="#/standings" data-route="standings">Standings</a>
       <a href="#/leaders" data-route="leaders">Leaders</a>
+      <a href="#/play" data-route="play">Play</a>
       <a href="#/news" data-route="news">News</a>
       <div class="navmore">
         <button class="navmore-btn" id="moreBtn" aria-expanded="false" aria-haspopup="true">More
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
         </button>
         <div class="navmore-menu" id="moreMenu" hidden>
-          <a href="#/play" data-route="play">Play ✦</a>
           <a href="#/betting" data-route="betting">Betting</a>
           <a href="#/seasons" data-route="seasons">Seasons</a>
           <a href="#/awards" data-route="awards">Awards</a>
@@ -80,6 +80,7 @@
     <a href="#/games" data-route="games">Scores</a>
     <a href="#/standings" data-route="standings">Standings</a>
     <a href="#/leaders" data-route="leaders">Leaders</a>
+    <a href="#/play" data-route="play">Play</a>
     <button class="mm-group" type="button" aria-expanded="false">History
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
     </button>
@@ -89,11 +90,10 @@
       <a href="#/draft" data-route="seasons">Draft</a>
       <a href="#/salaries" data-route="salaries">Salaries</a>
     </div>
-    <button class="mm-group" type="button" aria-expanded="false">Play &amp; more
+    <button class="mm-group" type="button" aria-expanded="false">More
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
     </button>
     <div class="mm-sub" hidden>
-      <a href="#/play" data-route="play">Play ✦</a>
       <a href="#/betting" data-route="betting">Betting</a>
       <a href="#/news" data-route="news">News</a>
     </div>
@@ -133,6 +133,6 @@
 
 <div class="tt" id="tt" role="status" aria-live="polite"></div>
 
-<script src="app.js?v=72"></script>
+<script src="app.js?v=74"></script>
 </body>
 </html>
