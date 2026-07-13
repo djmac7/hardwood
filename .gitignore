@@ -1,0 +1,7 @@
+.DS_Store
+build/refresh.log
+build/.daily-stamp
+build/*.tmp
+scratchpad/
+*.pyc
+__pycache__/
