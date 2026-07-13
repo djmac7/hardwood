@@ -871,7 +871,20 @@ body{ padding-left: var(--rail); padding-right: var(--rail); }
 .gh-meta{font-family:var(--mono);font-size:11.5px;color:var(--ink-3)}
 table.ref td.pos{color:var(--good);font-weight:600}
 table.ref td.neg{color:var(--crit)}
-@media (max-width:640px){.game-head{padding:18px;gap:10px}.gh-score{font-size:32px}.gh-ab{font-size:15px}.ava.hero{width:56px;height:56px;border-radius:12px}}
+/* Game header — mobile scoreboard: status on top, then one full-width row per
+   team (logo · name · score) so names never wrap and logos never overflow. */
+@media (max-width:640px){
+  .game-head{display:flex;flex-direction:column;gap:12px;padding:16px}
+  .gh-mid{order:-1;gap:6px}
+  .gh-team,.gh-team:last-child{display:flex;flex-direction:row;width:100%;
+    justify-content:flex-start;text-align:left;align-items:center;gap:13px}
+  .gh-team:last-child .r{order:1}                 /* undo desktop mirroring: logo stays left */
+  .gh-team .ava.hero{width:46px;height:46px;border-radius:11px;flex:none}
+  .gh-team>div{flex:1;min-width:0;display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .gh-ab{font-size:16px;line-height:1.15;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .gh-score{font-size:30px;flex:none}
+  .gh-mid .gh-final,.gh-mid .gh-meta{font-size:11.5px}
+}
 
 /* inline bar for % columns in tables (payroll share etc.) */
 .barpct{display:inline-block;width:52px;height:6px;border-radius:4px;background:var(--bg-sunk);margin-right:10px;vertical-align:middle;overflow:hidden}
@@ -1243,7 +1256,7 @@ table.ref tr.benchsep td{border-top:1px solid var(--line-strong)}
   /* --- player / team masthead: pin the headshot top-left beside the name
      instead of floating it to the vertical middle of a tall info column --- */
   .phead .inner{grid-template-columns:auto 1fr;align-items:start;gap:14px;padding:16px}
-  .ava.hero{width:66px;height:66px;border-radius:14px}
+  .phead .ava.hero,.thead .ava.hero{width:66px;height:66px;border-radius:14px}
   .phead .pos{font-size:11px}
   .phead h1{font-size:24px;line-height:1.06;margin:3px 0 9px}
   .bio{gap:9px 16px;margin:10px 0 12px}
@@ -1292,4 +1305,11 @@ table.ref tr.benchsep td{border-top:1px solid var(--line-strong)}
   .trend-strip{margin-top:22px}
   /* nudge the smallest mono labels up a hair for legibility on small screens */
   .tile .k,.bio .k,.thead .meta .k,.mm-label{font-size:10.5px}
+}
+
+/* game top-performers: one per row on phones (no truncated names, no empty cell).
+   Placed here — after the base .gleaders rule — so it wins by source order. */
+@media (max-width:640px){
+  .gleaders{grid-template-columns:1fr}
+  .gleaders .gl .who2 .nm{font-size:14px}
 }

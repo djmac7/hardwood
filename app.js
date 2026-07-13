@@ -107,7 +107,7 @@
       ${it.summary ? `<p class="art-sum">${esc(it.summary)}</p>` : ""}
       <a class="btn art-read" href="${esc(it.url)}" target="_blank" rel="noopener noreferrer">Read the full story at ${esc(it.source)} →</a>
       <p class="news-foot art-attr">Hardwood aggregates NBA headlines. Summary and image are provided by the publisher's feed for syndication; full articles, photos and rights remain with <b>${esc(it.source)}</b> — the link above opens the original.</p>
-      ${rel.length ? `<div class="section-title" style="margin-top:34px"><h2 style="font-size:22px">Related</h2></div>
+      ${rel.length ? `<div class="section-title" style="margin-top:26px"><h2>Related</h2></div>
         <div class="ncard-grid">${rel.map((r) => newsCard(r, items.indexOf(r))).join("")}</div>` : ""}
     </div>`;
   }
@@ -470,7 +470,7 @@
       <div class="rg-note">Trends are informational only and not betting advice. 21+. Gambling problem? Call <b>1-800-GAMBLER</b>.</div>
       <div class="ad-inline"><span class="lbl">Sponsored</span><div class="slot">Sportsbook placement · 728×90</div></div>
       <div class="bhgrid">${slate.length ? slate.map(gameCard).join("") : `<p class="muted">No games on the current slate — the season is between dates.</p>`}</div>
-      ${props.length ? `<div class="section-title small" style="margin-top:32px"><div><h2>Player props to watch</h2></div><span class="hint">season leaders · tap for trends</span></div>
+      ${props.length ? `<div class="section-title small" style="margin-top:26px"><div><h2>Player props to watch</h2></div><span class="hint">season leaders · tap for trends</span></div>
         <div class="ptiles">${props.map((r) => { const ij = byPlayer[r[0]]; return `<a class="ptile" href="#/player/${r[0]}"><span class="ptile-mark">${esc(initials(r[1]))}</span><span class="ptile-body"><span class="ptile-tag">${esc(r[2])} · ${one(r[3])} PPG${ij ? ` <span class="inj-tag ${ij.status === "Out" ? "out" : "dtd"}">${ij.status === "Out" ? "OUT" : "GTD"}</span>` : ""}</span><b>${esc(r[1])}</b><span class="ptile-d">Points, rebounds & assists trends</span></span><span class="ptile-go">→</span></a>`; }).join("")}</div>` : ""}
     </div>`;
   }
@@ -560,7 +560,7 @@
           <span class="ss-hero-cta">Play now <span>→</span></span></div>
         <div class="ss-hero-mark"><span>SIX</span><span>SPINS</span></div>
       </a>
-      <div class="section-title small" style="margin-top:32px"><div><h2>All games</h2></div></div>
+      <div class="section-title small" style="margin-top:26px"><div><h2>All games</h2></div></div>
       <div class="ptiles">${games.map(tile).join("")}</div>
     </div>`;
   }
@@ -1194,7 +1194,7 @@
             ${acc.length ? `<div class="chip-row">${acc.map((a) => `<span class="chip ${a.g ? "gold" : ""}">${a.g ? "★ " : ""}${esc(a.t)}</span>`).join("")}</div>` : ""}
           </div></div></div>
       <div class="tilerow">${tiles.map(([k, v, a]) => tile(k, v, a)).join("")}</div>
-      ${advTiles.length ? `<div class="section-title" style="margin-top:24px"><h2 style="font-size:20px">Advanced</h2></div>
+      ${advTiles.length ? `<div class="section-title" style="margin-top:26px"><h2>Advanced</h2></div>
         <div class="tilerow">${advTiles.map(([k, v]) => tile(k, v)).join("")}</div>` : ""}
       <div id="psGames"></div>
       <div class="actionbar" style="margin-top:22px"><a class="btn" href="#/player/${p.id}"><span class="ic-swap">←</span> Full career</a></div>
@@ -1478,11 +1478,11 @@
             <span class="who">${teamLogo(r[0], "xs")}<a class="nm" href="#/team/${r[0]}">${esc(tName(r[0]))}</a></span>
             <span class="val"><span class="mini"><i style="width:${(r[1] / tmax) * 100}%"></i></span>${money(r[1])}</span></li>`).join("")}</ol></div>
       </div>
-      <div class="section-title" style="margin-top:30px"><div><span class="eyebrow" id="allSalCount"></span><h2>All salaries · ${seasonLabel(yr)}</h2></div>
+      <div class="section-title" style="margin-top:26px"><div><span class="eyebrow" id="allSalCount"></span><h2>All salaries · ${seasonLabel(yr)}</h2></div>
         <label class="season-select"><span>Team</span><select class="mini-select" id="salTeamSel"><option value="">All teams</option>${
           [...new Set(paid.map((r) => r[2]).filter(Boolean))].sort((a, b) => tName(a).localeCompare(tName(b))).map((ab) => `<option value="${ab}">${esc(tName(ab))}</option>`).join("")}</select></label></div>
       <div class="card" id="allSalCard"></div>
-      <div class="section-title" style="margin-top:30px"><div><span class="eyebrow" id="allTimeEyebrow"></span><h2>Highest single-season salaries, all-time</h2></div>
+      <div class="section-title" style="margin-top:26px"><div><span class="eyebrow" id="allTimeEyebrow"></span><h2>Highest single-season salaries, all-time</h2></div>
         ${CPI ? `<div class="tabs" id="inflToggle"><button data-adj="0" aria-selected="true">Nominal</button><button data-adj="1" aria-selected="false">${seasonLabel(CPI.base)} dollars</button></div>` : ""}</div>
       <div class="card" id="allTimeCard"></div>
       <p class="news-foot" style="margin-top:14px" id="allTimeFoot"></p>
@@ -1608,12 +1608,12 @@
         ${top ? `<div class="card big pad season-best"><span class="eyebrow">Best record</span>
           <div class="sb"><div class="rr">${top.w}–${top.l}</div><div>${teamTag(top.abbr, true)}<div class="muted" style="font-size:12px;margin-top:2px">${winpct(top.w, top.l)}</div></div></div></div>` : ""}
       </div>
-      <div class="section-title" style="margin-top:30px"><h2>Leaders</h2><a class="link" href="#/leaders/${yr}">All categories →</a></div>
+      <div class="section-title" style="margin-top:26px"><h2>Leaders</h2><a class="link" href="#/leaders/${yr}">All categories →</a></div>
       <div class="cardgrid">${["pts", "trb", "ast", "per"].map((c) => leaderCard(S, c)).join("")}</div>
       ${honorsBlock(S.honors)}
-      <div class="section-title" style="margin-top:30px"><h2>Standings</h2><a class="link" href="#/standings/${yr}">Full table →</a></div>
+      <div class="section-title" style="margin-top:26px"><h2>Standings</h2><a class="link" href="#/standings/${yr}">Full table →</a></div>
       <div class="card big pad scatter-card"><div class="chart-hint"><span class="dotpulse"></span>Hover a team · click to open</div><figure id="scatterSeason" style="margin:0"></figure></div>
-      ${META.draftYears.includes(yr - 1) ? `<div class="section-title" style="margin-top:30px"><h2>Draft class</h2><a class="link" href="#/draft/${yr - 1}">${yr - 1} draft →</a></div>
+      ${META.draftYears.includes(yr - 1) ? `<div class="section-title" style="margin-top:26px"><h2>Draft class</h2><a class="link" href="#/draft/${yr - 1}">${yr - 1} draft →</a></div>
         <p class="muted" style="font-size:14px">See who entered the league in the <a href="#/draft/${yr - 1}" style="color:var(--accent-deep)">${yr - 1} NBA Draft</a>.</p>` : ""}
     </div>`;
     drawScatter("scatterSeason", st);
@@ -1637,7 +1637,7 @@
     const starHtml = (h.allStar && h.allStar.length) ? `<div class="card pad" style="grid-column:1/-1"><div class="card-h"><h3>All-Stars</h3><span class="hint">${h.allStar.length} selected</span></div>
       <div class="chip-row">${h.allStar.map((x) => playerChip(x[0], x[1], (SMAP[x[0]] || [])[5])).join("")}</div></div>` : "";
     if (!teamsHtml && !votingHtml && !starHtml) return "";
-    return `<div class="section-title" style="margin-top:30px"><h2>Honors</h2></div>
+    return `<div class="section-title" style="margin-top:26px"><h2>Honors</h2></div>
       <div class="honors-grid">${teamsHtml}${votingHtml}${starHtml}</div>`;
   }
 
@@ -1673,7 +1673,7 @@
       <div class="section-title"><div><span class="eyebrow">${seasonLabel(META.current)} · 30 teams</span><h2>Teams</h2></div><a class="link" href="#/standings">Standings →</a></div>
       <h3 class="conf-h">Eastern Conference</h3><div class="tcards">${cards("East")}</div>
       <h3 class="conf-h">Western Conference</h3><div class="tcards">${cards("West")}</div>
-      <div class="section-title" style="margin-top:34px"><h2>Offense against defense</h2></div>
+      <div class="section-title" style="margin-top:26px"><h2>Offense against defense</h2></div>
       <div class="card big pad scatter-card"><div class="chart-hint"><span class="dotpulse"></span>Hover a team · click to open</div><figure id="scatterTeams" style="margin:0"></figure></div>
     </div>`;
     drawScatter("scatterTeams", S.standings);
@@ -1691,7 +1691,7 @@
         <input id="pgSearch" type="text" placeholder="Search all ${SEARCH.length.toLocaleString()} players…" autocomplete="off" spellcheck="false" />
         <div class="results" id="pgResults"></div>
       </div>
-      <div class="section-title"><h2 style="font-size:20px">${seasonLabel(META.current)} scoring leaders</h2></div>
+      <div class="section-title"><h2>${seasonLabel(META.current)} scoring leaders</h2></div>
       <div class="pcards" id="pgCards"></div>`;
     $("#pgCards").innerHTML = await playerCards((S.leaders.pts || []).slice(0, 12).map((r) => r[0]));
     wireSearch($("#pgSearch"), $("#pgResults"));
