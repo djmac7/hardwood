@@ -1181,12 +1181,14 @@
     const age = b.born ? curSeasonNo - (+b.born.slice(0, 4)) : null;
     const spanTeams = [...new Set(p.log.map((r) => r[2]))].filter(isRealTeam);
     // teams strip for the masthead: current team first (marked), rest after, collapse journeymen
-    const curTeam = isRealTeam(c.team) ? c.team : (spanTeams[spanTeams.length - 1] || null);
-    const orderedTeams = curTeam ? [curTeam, ...spanTeams.filter((t) => t !== curTeam)] : spanTeams;
-    const TEAM_SHOW = 6;
-    const teamPill = (ab) => `<a href="#/team/${ab}" class="tm-mini${ab === curTeam ? " cur" : ""}" title="${esc(tName(ab))}${ab === curTeam ? " · current team" : ""}">${teamLogo(ab, "xs")}<span>${esc(ab)}</span></a>`;
-    const _shown = orderedTeams.slice(0, TEAM_SHOW), _hidden = orderedTeams.slice(TEAM_SHOW);
-    const teamsStrip = orderedTeams.length ? `<div class="tm-strip">${_shown.map(teamPill).join("")}${_hidden.length ? `<span class="tm-hidden" hidden>${_hidden.map(teamPill).join("")}</span><button class="tm-more" type="button">+${_hidden.length} more</button>` : ""}</div>` : "";
+    // Career team timeline: consecutive-season stints in chronological order, with the
+    // year range on each pill and arrows to the current/most-recent team (highlighted).
+    const _stints = [];
+    p.log.filter((r) => isRealTeam(r[2])).forEach((r) => { const last = _stints[_stints.length - 1]; if (last && last.ab === r[2]) last.to = r[0]; else _stints.push({ ab: r[2], from: r[0], to: r[0] }); });
+    _stints.forEach((s, i) => { s.cur = i === _stints.length - 1; });
+    const _yr = (s) => `${s.from - 1}–${s.to === META.current ? "now" : String(s.to).slice(2)}`;
+    const stintPill = (s) => `<a href="#/team/${s.ab}" class="tm-mini${s.cur ? " cur" : ""}" title="${esc(tName(s.ab))} · ${seasonLabel(s.from)} to ${seasonLabel(s.to)}">${teamLogo(s.ab, "xs")}<span class="tm-ab">${esc(s.ab)}</span><span class="tm-yrs">${_yr(s)}</span></a>`;
+    const teamsStrip = _stints.length ? `<div class="tm-timeline">${_stints.map(stintPill).join('<span class="tm-arrow" aria-hidden="true">›</span>')}</div>` : "";
     const draft = await draftInfo(p).catch(() => null);
     const nSeasons = new Set(p.log.filter((r) => r[16] !== 2).map((r) => r[0])).size;
     // Active players show the current season (with league-rank pips); retired players
@@ -1381,7 +1383,6 @@
     if (active) fillRanks(p);   // rank pips are current-season only
     twoKCard(id).then((html) => { const el = $("#sec-2k"); if (el && html) el.innerHTML = html; });
     wireJumpNav();
-    $$(".tm-more", app).forEach((btn) => btn.addEventListener("click", () => { const h = btn.previousElementSibling; if (h && h.classList.contains("tm-hidden")) h.hidden = false; btn.remove(); }));
     const INJ_ICON = `<svg class="inj-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="17" height="17" rx="5"/><path d="M12 8v8M8 12h8"/></svg>`;
     getInjuries().then((inj) => { const r = inj && inj.byPlayer && inj.byPlayer[id]; const el = $("#playerInjury"); if (el && r) el.innerHTML = `<div class="inj-badge ${r.status === "Out" ? "out" : "dtd"}">${INJ_ICON}<span class="inj-status">${esc(r.status)}</span>${r.note ? `<span class="inj-note">${esc(r.note)}</span>` : ""}</div>`; }).catch(() => {});
     playerNews(id).then((html) => { const el = $("#playerNews"); if (el && html) el.innerHTML = html; });

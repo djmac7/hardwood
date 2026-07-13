@@ -1458,18 +1458,17 @@ table.ref tr.benchsep td{border-top:1px solid var(--line-strong)}
   .gg-win-card h2{font-size:24px}
 }
 
-/* --- player masthead: teams strip (current team marked, journeyman collapse) --- */
-.tm-strip{display:flex;flex-wrap:wrap;gap:7px;margin-top:14px}
-.tm-mini{display:inline-flex;align-items:center;gap:6px;padding:4px 10px 4px 5px;border:1px solid var(--line);
-  border-radius:999px;font-family:var(--mono);font-size:11px;font-weight:600;color:var(--ink-2);background:var(--panel);transition:.14s}
+/* --- player masthead: career team timeline (stints w/ years, arrows to current) --- */
+.tm-timeline{display:flex;flex-wrap:wrap;align-items:center;gap:5px 6px;margin-top:15px}
+.tm-mini{display:inline-flex;align-items:center;gap:7px;padding:4px 11px 4px 5px;border:1px solid var(--line);
+  border-radius:999px;font-family:var(--mono);font-weight:600;color:var(--ink-2);background:var(--panel);transition:.14s;white-space:nowrap}
 .tm-mini:hover{border-color:var(--accent);color:var(--accent-deep)}
 .tm-mini .ava{width:20px;height:20px}
+.tm-ab{font-size:11px}
+.tm-yrs{font-size:10px;font-weight:500;color:var(--ink-4);letter-spacing:.02em}
 .tm-mini.cur{border-color:var(--accent);background:var(--accent-wash);color:var(--accent-deep)}
-.tm-hidden{display:contents}
-.tm-hidden[hidden]{display:none}
-.tm-more{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--ink-3);background:var(--bg-sunk);
-  border:1px dashed var(--line-strong);border-radius:999px;padding:5px 12px;cursor:pointer;transition:.14s}
-.tm-more:hover{border-color:var(--accent);color:var(--accent-deep)}
+.tm-mini.cur .tm-yrs{color:color-mix(in srgb,var(--accent-deep) 70%,transparent)}
+.tm-arrow{color:var(--ink-4);font-size:15px;line-height:1;user-select:none;flex:none}
 
 /* --- injury badge icon --- */
 .inj-ic{width:16px;height:16px;flex:none}
