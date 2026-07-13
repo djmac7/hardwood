@@ -1357,3 +1357,11 @@ table.ref tr.benchsep td{border-top:1px solid var(--line-strong)}
 .mobile-menu .mm-sub{background:var(--bg-sunk)}
 .mobile-menu .mm-sub a{padding-left:40px;font-size:14.5px;font-weight:500;color:var(--ink-3)}
 .mobile-menu .mm-sub a.on{color:var(--accent-deep)}
+
+/* Ranked lists (salary highest-paid, team payroll) on phones: drop the small
+   inline value bar so player/team names get the width they need instead of
+   truncating to 'Steph…', 'Giannis…'. The dollar/number value still shows. */
+@media (max-width:640px){
+  .rank .val .mini{display:none}
+  .rank .who .nm{font-size:14px}
+}
