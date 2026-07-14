@@ -211,3 +211,7 @@ print("source rows:", dict(counts))
 print(f"seasons {min(seasons)}-{max(seasons)} · player-seasons {len(merged)} · "
       f"players {len(by_player)} · matched {matched} / unmatched {unmatched}")
 print("wrote data/salaries.json")
+
+# backfill team attribution from player logs + recompute team totals
+import subprocess, sys
+subprocess.run([sys.executable, os.path.join(HERE, "fix_salary_teams.py")], check=True)

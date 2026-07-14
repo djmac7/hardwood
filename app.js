@@ -3,7 +3,7 @@
    Async data access; official-CDN logos/headshots with fallbacks.
    ============================================================ */
 (function () {
-  const V = "37";
+  const V = "39";
   // Injury report is hidden site-wide until we have reliable, injury-specific data for
   // every player (the ESPN feed is offseason transaction noise). Flip to true to restore.
   const SHOW_INJURIES = false;
@@ -1694,7 +1694,16 @@
     const hasPay = Object.keys(pay).length > 0;
     const m = tMeta(ab), color = tColor(ab);
     const latest = (y && t.seasons.find((s) => s.season === +y)) || t.seasons[0];   // selected season drives header/contracts
-    const rosterSeason = t.lastSeason || (t.seasons[0] && t.seasons[0].season);      // the season t.roster actually reflects
+    const rosterSeason = t.lastSeason || (t.seasons[0] && t.seasons[0].season);      // the season t.roster (live) reflects
+    // Season-accurate roster: the latest season uses the live `roster`; past seasons use the
+    // reconstructed per-season roster (rostersBySeason). Fall back to the live roster (clearly
+    // labelled "latest on record") only if a season has no reconstructed entry.
+    const FH_SHOWN = 12;   // franchise-history rows shown before the "show all" toggle
+    const rbsAll = t.rostersBySeason || {};
+    const selSeason = latest ? latest.season : rosterSeason;
+    const seasonRoster = rbsAll[selSeason];
+    const displayRoster = seasonRoster || t.roster || [];
+    const rosterExact = !!seasonRoster || selSeason === rosterSeason;
     const conf = m ? m.conf : null;
     const teamSel = `<label class="season-select"><span>Season</span><select class="mini-select" id="tmSeasonSel">${t.seasons.map((s) => `<option value="${s.season}" ${s.season === latest.season ? "selected" : ""}>${seasonLabel(s.season)}</option>`).join("")}</select></label>`;
     // Contracts are forward-looking: once a season ends, "on the books" means NEXT
@@ -1759,22 +1768,23 @@
       <nav class="jumpnav" id="jumpNav">${[["Roster", "sec-tables"], (seasonGames.length ? ["Schedule", "sec-games"] : null), (contracts.length ? ["Payroll", "sec-contracts"] : null), ["News", "teamNews"]].filter(Boolean).map(([lab, t]) => `<a href="#" data-tgt="${t}">${lab}</a>`).join("")}</nav>
       <div class="two-col" id="sec-tables">
         <div class="card pad" style="min-width:0">
-          <div class="card-h"><h3>${latest && latest.season === rosterSeason ? seasonLabel(latest.season) + " roster leaders" : seasonLabel(rosterSeason) + " roster"}</h3><span class="hint">${latest && latest.season === rosterSeason ? "per game" : "latest on record · per game"}</span></div>
-          ${t.roster && t.roster.length ? `<div class="tbl-wrap"><table class="ref">
+          <div class="card-h"><h3>${seasonLabel(rosterExact ? selSeason : rosterSeason)} roster${rosterExact && selSeason === rosterSeason ? " leaders" : ""}</h3><span class="hint">${rosterExact ? "per game" : "latest on record · per game"}</span></div>
+          ${displayRoster.length ? `<div class="tbl-wrap"><table class="ref">
             <thead><tr><th class="l">Player</th><th>PTS</th><th>REB</th><th>AST</th><th>GP</th><th class="l">Pos</th></tr></thead>
-            <tbody>${t.roster.map((r) => `<tr><td class="l"><span class="who">${headshot(r[0], r[1], ab, "xs")}<a href="#/player/${r[0]}">${esc(r[1])}</a></span></td>
+            <tbody>${displayRoster.map((r) => `<tr><td class="l"><span class="who">${headshot(r[0], r[1], ab, "xs")}<a href="#/player/${r[0]}">${esc(r[1])}</a></span></td>
               <td class="hi">${one(r[4])}</td><td>${one(r[5])}</td><td>${one(r[6])}</td><td>${r[3]}</td><td class="l muted">${esc((r[2] || "").split("-")[0])}</td></tr>`).join("")}</tbody>
           </table></div>` : `<p class="muted" style="font-size:14px">No roster on record.</p>`}
         </div>
-        <div class="card pad" style="min-width:0">
+        <div class="card pad fh-collapsed" id="fhCard" style="min-width:0">
           <div class="card-h"><h3>Franchise history</h3><span class="hint">by season${hasPay ? " · payroll ’00–20" : ""}</span></div>
           <div class="tbl-wrap"><table class="ref" style="min-width:0">
             <thead><tr><th class="l">Season</th><th>W</th><th>L</th><th>PCT</th><th>ORtg</th><th>DRtg</th>${hasPay ? "<th>Payroll</th>" : ""}<th></th></tr></thead>
-            <tbody>${t.seasons.map((s) => `<tr onclick="location.hash='#/team/${ab}/${s.season}'" style="cursor:pointer" title="${esc(tName(ab))} ${seasonLabel(s.season)} — schedule & results">
+            <tbody>${t.seasons.map((s, i) => `<tr class="fh-row${i >= FH_SHOWN ? " fh-x" : ""}" onclick="location.hash='#/team/${ab}/${s.season}'" style="cursor:pointer" title="${esc(tName(ab))} ${seasonLabel(s.season)} — schedule & results">
               <td class="l season">${seasonLabel(s.season)}</td><td>${s.w}</td><td>${s.l}</td><td>${winpct(s.w, s.l)}</td>
               <td>${s.o != null ? s.o.toFixed(1) : "—"}</td><td>${s.d != null ? s.d.toFixed(1) : "—"}</td>
               ${hasPay ? `<td>${pay[s.season] ? money(pay[s.season]) : "—"}</td>` : ""}
               <td class="l">${s.po ? '<span class="pill w">Playoffs</span>' : ""}</td></tr>`).join("")}</tbody></table></div>
+          ${t.seasons.length > FH_SHOWN ? `<button type="button" class="fh-toggle" id="fhToggle">Show all ${t.seasons.length} seasons</button>` : ""}
         </div>
       </div>
       ${gamesCard}
@@ -1789,6 +1799,10 @@
       <div id="teamNews"></div>
     </div>`;
     const ts = $("#tmSeasonSel"); if (ts) ts.addEventListener("change", () => (location.hash = `#/team/${ab}/${ts.value}`));
+    const fhToggle = $("#fhToggle"); if (fhToggle) fhToggle.addEventListener("click", () => {
+      const collapsed = $("#fhCard").classList.toggle("fh-collapsed");
+      fhToggle.textContent = collapsed ? `Show all ${t.seasons.length} seasons` : "Show fewer";
+    });
     wireJumpNav();
     teamNews(ab).then((html) => { const el = $("#teamNews"); if (el && html) el.innerHTML = html; });
   }

@@ -538,4 +538,8 @@ write(f"{OUT}/search.json", search)
 # current-season champion/mvp echo (sanity)
 cs = json.load(open(f"{OUT}/season/{CUR_SEASON}.json"))
 print("current season", CUR_SEASON, "champion", cs["champion"], "mvp", cs["mvp"])
+
+# backfill per-season rosters into the team files (reads the player/team JSON just written)
+import subprocess, sys
+subprocess.run([sys.executable, os.path.join(os.path.dirname(__file__), "build_season_rosters.py")], check=True)
 print("done.")
