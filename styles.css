@@ -1209,8 +1209,12 @@ table.ref tr.benchsep td{border-top:1px solid var(--line-strong)}
 @media (max-width:560px){.set-row{flex-direction:column;align-items:flex-start;gap:12px}}
 
 /* embedded game (Six Spins iframe) */
-.embed-frame{border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:var(--shadow-sm);background:var(--panel);height:min(80vh,920px)}
-.embed-frame iframe{width:100%;height:100%;border:0;display:block}
+/* Six Spins is a fixed single-screen app that needs a tall enough viewport for its
+   board + intro modal; too short a frame clips the bottom (e.g. the Start button).
+   Guarantee a comfortable height, cap it on big screens, and let the frame scroll as
+   a safety net so embedded content is never unreachable. */
+.embed-frame{border:1px solid var(--line);border-radius:16px;overflow:auto;-webkit-overflow-scrolling:touch;box-shadow:var(--shadow-sm);background:var(--panel);height:clamp(680px,82vh,920px)}
+.embed-frame iframe{width:100%;height:100%;min-height:680px;border:0;display:block}
 
 /* full game log collapse */
 .gl-collapsed .gl-extra{display:none}

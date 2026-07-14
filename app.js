@@ -633,7 +633,7 @@
     app.innerHTML = `<div class="wrap page">
       <div class="crumb"><a href="#/">Home</a><span class="sep">/</span><a href="#/play">Arcade</a><span class="sep">/</span><span>Six Spins</span></div>
       <div class="section-title"><div><span class="eyebrow">Continuous build · embedded</span><h2>Six Spins</h2></div><a class="link" href="https://sixspins.com" target="_blank" rel="noopener noreferrer">Open full ↗</a></div>
-      <div class="embed-frame"><iframe src="https://sixspins.com" title="Six Spins — build a 99-overall NBA player" loading="lazy" allow="fullscreen"></iframe></div>
+      <div class="embed-frame"><iframe src="https://sixspins.com/?embed=1" title="Six Spins — build a 99-overall NBA player" loading="lazy" allow="fullscreen"></iframe></div>
     </div>`;
   }
 
