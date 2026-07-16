@@ -76,17 +76,35 @@ def draft():
 
 
 def contracts():
-    """Layer ESPN's forward contract years (2027+) onto data/salaries.json.
-    Each team roster already carries every athlete's full contracts array, so this
-    is just 31 requests (teams + 30 rosters)."""
+    """Refresh current+future contract years on data/salaries.json from ESPN rosters
+    (whose figures match the Spotrac / Basketball-Reference gold standard).
+
+    Unlike the old add-only version this OVERWRITES future-year (> current season)
+    figures and teams every run, so trades, re-signings and extensions actually
+    propagate instead of freezing the first value ever seen. A rostered player's
+    current team is applied to ALL of his future years — the whole guaranteed
+    contract travels with the player — which corrects the out-years ESPN doesn't
+    itemize. Long-term years ESPN omits keep their stored (Spotrac-aligned) figure,
+    so we never lose the far-out guaranteed money ESPN's short array can't see.
+
+    Never touched: seasons <= current (completed/historical), careerEarn, and the
+    all-time salary leaderboards (topAllTime / topAllTimeReal) — all defined as
+    through-current-season only."""
     sal = json.load(open(os.path.join(DATA, "salaries.json")))
+    meta = json.load(open(os.path.join(DATA, "meta.json")))
+    CUR = meta["current"]
     idx = name_index()
-    cur_max = sal["range"][1]
+    pid2name = {e[0]: e[1] for e in json.load(open(os.path.join(DATA, "search.json")))}
+
+    # existing team per (pid, season) — byPlayer carries no team, bySeason does
+    stored_team = {}
+    for s, rows in sal["bySeason"].items():
+        for pid, nm, ab, v in rows:
+            stored_team[(pid, int(s))] = ab
+
+    # ---- pull ESPN: current team + each contract year (> CUR) per rostered player ----
+    espn_team, espn_year, matched = {}, {}, 0
     teams = get(f"{SITE}/teams")["sports"][0]["leagues"][0]["teams"]
-    tp_add = {}                                   # (abbr, year) -> total
-    by_season = {}                                # year -> {pid: [pid,name,abbr,salary]}
-    touched = set()
-    matched = 0
     for t in teams:
         tid = t["team"]["id"]
         r = get(f"{SITE}/teams/{tid}/roster")
@@ -96,38 +114,66 @@ def contracts():
             if not hit:
                 continue
             pid = hit[0][1]; matched += 1
+            espn_team[pid] = ab
             for c in (a.get("contracts") or []):
                 yr = (c.get("season") or {}).get("year")
                 salv = c.get("salary")
-                if not yr or salv is None or yr < cur_max:
-                    continue                             # fill the current year + all future years
-                bp = sal["byPlayer"].setdefault(pid, [])
-                if not any(row[0] == yr for row in bp):  # never overwrite an existing figure
-                    bp.append([yr, salv]); touched.add(pid)
-                if yr > cur_max:                         # only future years extend the season aggregates
-                    by_season.setdefault(yr, {})[pid] = [pid, a.get("fullName"), ab, salv]
-                    tp_add[(ab, yr)] = tp_add.get((ab, yr), 0) + salv
-    maxyr = cur_max
-    for yr, players in by_season.items():
-        maxyr = max(maxyr, yr)
-        sal["bySeason"][str(yr)] = sorted(players.values(), key=lambda x: -x[3])
-    rank = {}
-    for (ab, yr), tot in tp_add.items():
-        tp = sal["teamPayroll"].setdefault(ab, [])
-        if not any(row[0] == yr for row in tp):
-            tp.append([yr, tot]); tp.sort()
-        rank.setdefault(yr, []).append([ab, tot])
-    for yr, lst in rank.items():
-        sal["payrollRank"][str(yr)] = sorted(lst, key=lambda x: -x[1])
-    for pid in touched:
-        sal["byPlayer"][pid].sort()
-    sal["range"] = [sal["range"][0], maxyr]
-    tag = "forward contract years from ESPN"
-    if tag not in (sal.get("note") or ""):
-        sal["note"] = (sal.get("note", "") + " · " + tag).strip(" ·")
+                if yr and salv is not None and yr > CUR:
+                    espn_year.setdefault(pid, {})[yr] = int(salv)
+
+    # ---- rebuild the future portion (> CUR) of byPlayer, and the team for each row ----
+    fut_team = {}                                     # (pid, year) -> team abbr
+    for pid, arr in list(sal["byPlayer"].items()):
+        keep = [row for row in arr if row[0] <= CUR]
+        futrows = {row[0]: row[1] for row in arr if row[0] > CUR}   # stored out-years
+        futrows.update(espn_year.get(pid, {}))                       # overwrite/add ESPN years
+        cur_ab = espn_team.get(pid)                                  # rostered -> current team wins
+        for yr, salv in futrows.items():
+            keep.append([yr, salv])
+            fut_team[(pid, yr)] = cur_ab or stored_team.get((pid, yr))
+        keep.sort()
+        sal["byPlayer"][pid] = keep
+    for pid, years in espn_year.items():              # brand-new players not in byPlayer
+        if pid not in sal["byPlayer"]:
+            sal["byPlayer"][pid] = sorted([yr, salv] for yr, salv in years.items())
+            for yr in years:
+                fut_team[(pid, yr)] = espn_team.get(pid)
+
+    # ---- rebuild bySeason / teamPayroll / payrollRank for seasons > CUR from byPlayer ----
+    for s in [s for s in sal["bySeason"] if int(s) > CUR]:
+        del sal["bySeason"][s]
+    for ab in sal["teamPayroll"]:
+        sal["teamPayroll"][ab] = [r for r in sal["teamPayroll"][ab] if r[0] <= CUR]
+    for s in [s for s in sal["payrollRank"] if int(s) > CUR]:
+        del sal["payrollRank"][s]
+
+    fut_seasons = sorted({yr for arr in sal["byPlayer"].values() for yr, _ in arr if yr > CUR})
+    for season in fut_seasons:
+        rows, tot = [], {}
+        for pid, arr in sal["byPlayer"].items():
+            salv = next((v for yy, v in arr if yy == season), None)
+            if salv is None:
+                continue
+            ab = fut_team.get((pid, season)) or ""
+            rows.append([pid, pid2name.get(pid, ""), ab, salv])
+            if ab:
+                tot[ab] = tot.get(ab, 0) + salv
+        rows.sort(key=lambda x: -x[3])
+        sal["bySeason"][str(season)] = rows
+        sal["payrollRank"][str(season)] = sorted(([ab, v] for ab, v in tot.items()), key=lambda x: -x[1])
+        for ab, v in tot.items():
+            sal["teamPayroll"].setdefault(ab, []).append([season, v])
+    for ab in list(sal["teamPayroll"]):
+        sal["teamPayroll"][ab].sort()
+        if not sal["teamPayroll"][ab]:
+            del sal["teamPayroll"][ab]
+
+    all_seasons = {yr for arr in sal["byPlayer"].values() for yr, _ in arr}
+    sal["range"] = [min(all_seasons), max(all_seasons)]
     with open(os.path.join(DATA, "salaries.json"), "w") as f:
         json.dump(sal, f, separators=(",", ":"), ensure_ascii=False)
-    print(f"contracts: matched {matched} roster spots; future years through {maxyr}; {len(touched)} players extended")
+    lo = fut_seasons[0] if fut_seasons else "-"; hi = fut_seasons[-1] if fut_seasons else "-"
+    print(f"contracts: {matched} roster matches; refreshed future seasons {lo}-{hi}; range {sal['range']}")
 
 
 def rosters():
