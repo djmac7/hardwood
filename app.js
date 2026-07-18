@@ -2919,10 +2919,24 @@
   }
 
   /* ---------- not found ---------- */
+  // one line-icon voice for full-page states (restrained, monogram-mark ethos — no emoji)
+  const IC_SEARCH = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>`;
+  const IC_ALERT = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.2l9.3 16.1H2.7L12 3.2z"/><path d="M12 10v4.2M12 17.4v.1"/></svg>`;
+  function stateView({ icon, title, desc, actions }) {
+    return `<div class="wrap page"><div class="state">
+      <div class="state-ic" aria-hidden="true">${icon}</div>
+      <h2 class="state-t">${title}</h2>
+      ${desc ? `<p class="state-d">${esc(desc)}</p>` : ""}
+      ${actions ? `<div class="state-act">${actions}</div>` : ""}
+    </div></div>`;
+  }
   function notFound(kind) {
-    app.innerHTML = `<div class="wrap page"><div class="crumb"><a href="#/">Home</a></div>
-      <h2 style="font-size:28px">That ${kind} isn't in the reference.</h2>
-      <p class="muted" style="margin-top:8px">Try the <a href="#/players" style="color:var(--accent-deep)">players</a>, <a href="#/teams" style="color:var(--accent-deep)">teams</a> or <a href="#/seasons" style="color:var(--accent-deep)">seasons</a> index.</p></div>`;
+    app.innerHTML = stateView({
+      icon: IC_SEARCH,
+      title: `We couldn't find that ${esc(kind)}.`,
+      desc: "It may be misspelled, or not in the reference yet.",
+      actions: `<a class="state-btn" href="#/players">Players</a><a class="state-btn" href="#/teams">Teams</a><a class="state-btn" href="#/seasons">Seasons</a>`,
+    });
   }
 
   /* ---------- reveal ---------- */
@@ -3052,7 +3066,7 @@
       else await renderHome();
     } catch (err) {
       console.error(err);
-      app.innerHTML = `<div class="wrap page"><h2 style="font-size:26px">Something went wrong loading this view.</h2><p class="muted" style="margin-top:8px">${esc(err.message || err)}</p><p style="margin-top:12px"><a href="#/" style="color:var(--accent-deep)">← Home</a></p></div>`;
+      app.innerHTML = stateView({ icon: IC_ALERT, title: "Something went wrong loading this view.", desc: err.message || String(err), actions: `<a class="state-btn" href="#/">← Home</a>` });
     }
     // a11y: every view needs exactly one <h1>. Home and the player/team heroes already have
     // one; for the rest, add a visually-hidden h1 from the page title so the document outline
@@ -3267,7 +3281,7 @@
       await route();
       showDataRefreshed();
     } catch (err) {
-      app.innerHTML = `<div class="wrap page"><h2 style="font-size:26px">Couldn't load the dataset.</h2><p class="muted" style="margin-top:8px">${esc(err.message || err)}</p></div>`;
+      app.innerHTML = stateView({ icon: IC_ALERT, title: "Couldn't load the dataset.", desc: err.message || String(err), actions: `<button class="state-btn" onclick="location.reload()">Reload</button>` });
     }
   })();
 })();

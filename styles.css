@@ -1313,6 +1313,16 @@ table.ref tr.benchsep td{border-top:1px solid var(--line-strong)}
 .pt-empty span{font-size:13px;max-width:280px}
 .pt-empty-clear{margin-top:6px;height:34px;padding:0 16px;border:1px solid var(--line-strong);border-radius:8px;background:var(--panel);color:var(--ink-2);font-size:13px;font-weight:500;cursor:pointer}
 .pt-empty-clear:hover{border-color:var(--accent);color:var(--ink)}
+/* unified full-page state (not-found / error / empty) — one restrained voice everywhere */
+.state{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:10px;
+  padding:56px 20px;max-width:440px;margin:0 auto;min-height:44vh}
+.state-ic{width:56px;height:56px;display:grid;place-items:center;border-radius:var(--rad-md);background:var(--panel-2);border:1px solid var(--line);color:var(--ink-3);margin-bottom:4px}
+.state-ic svg{width:26px;height:26px}
+.state-t{font-size:var(--fs-xl);letter-spacing:-.01em;color:var(--ink);font-weight:600}
+.state-d{color:var(--ink-3);font-size:var(--fs-md);line-height:var(--lh-relaxed);word-break:break-word}
+.state-act{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:10px}
+.state-btn{display:inline-flex;align-items:center;height:36px;padding:0 16px;border:1px solid var(--line-strong);border-radius:9px;background:var(--panel);color:var(--ink-2);font-size:var(--fs-md);font-weight:500;transition:border-color .15s,color .15s}
+.state-btn:hover{border-color:var(--accent);color:var(--ink)}
 /* fixed sticky-header clone that tracks a long table's columns as you scroll (see ptStickySetup) */
 .pt-stick{position:fixed;top:60px;z-index:55;overflow:hidden;pointer-events:none;background:var(--panel);border-bottom:1px solid var(--line-strong);box-shadow:0 10px 16px -12px rgba(0,0,0,.4)}
 .pt-stick[hidden]{display:none}
