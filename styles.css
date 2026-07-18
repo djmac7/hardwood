@@ -1077,8 +1077,17 @@ table.ref td.peak::after{content:"";position:absolute;top:6px;right:5px;width:5p
 .sk-tiles{display:flex;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--rad);overflow:hidden;margin-bottom:20px}
 .sk-tiles .sk{flex:1 1 120px;height:74px;border-radius:0;background:var(--panel-2)}
 .sk-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--rad);padding:22px;box-shadow:var(--shadow-sm)}
+.sk-tbl{display:flex;flex-direction:column;gap:14px}
 .sk-row{height:15px;border-radius:6px}
-@media (max-width:640px){.sk-ava{width:64px;height:64px}.sk-hero{padding:18px;gap:14px}}
+.sk-titlebar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px;flex-wrap:wrap}
+.sk-bar{display:flex;align-items:center;gap:9px;margin-bottom:14px;flex-wrap:wrap}
+.sk-search{height:36px;width:100%;border-radius:9px}
+.sk-btn{width:96px;height:36px;border-radius:9px;flex:none}
+.sk-btn.sm{width:104px}
+.sk-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.sk-cardbox{height:98px;border-radius:14px}
+.sk-cardbox.tall{height:150px}
+@media (max-width:640px){.sk-ava{width:64px;height:64px}.sk-hero{padding:18px;gap:14px}.sk-btn{width:84px}.sk-cards{grid-template-columns:1fr 1fr}.sk-cardbox.tall{height:120px}}
 
 /* ---- in-content ad slot: a leaderboard unit dropped into the long scroll of
    player / game pages, where the fixed side rails under-monetize. ---- */

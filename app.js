@@ -2889,27 +2889,46 @@
   /* ---------- skeleton loaders (replace the boot spinner: structure-matching
      shimmer → less layout shift, faster perceived load, healthier CLS) ---------- */
   const DETAIL_SEGS = new Set(["player", "pseason", "team", "game", "season"]);
+  const FILTER_TABLE_SEGS = new Set(["players", "teams", "games", "salaries"]);   // have a search + filter toolbar
+  const GRID_SEGS = new Set(["leaders", "seasons", "awards"]);                    // card / leaderboard grids
+  // structure-matching shimmer placeholders per page shape, so the loading state doesn't
+  // jump when the real content lands (lower CLS + a calmer perceived load).
   function skeleton(seg) {
-    const tableCard = `<div class="sk-card"><div style="display:flex;flex-direction:column;gap:14px">
-      <div class="sk sk-row" style="width:38%;height:18px"></div>
-      ${Array.from({ length: 8 }, () => `<div class="sk sk-row" style="width:100%"></div>`).join("")}
-    </div></div>`;
+    const crumb = `<div class="sk sk-crumb"></div>`;
+    const rows = (n) => Array.from({ length: n }, () => `<div class="sk sk-row"></div>`).join("");
+    const tableCard = `<div class="sk-card"><div class="sk-tbl"><div class="sk sk-row" style="width:34%;height:16px;margin-bottom:4px"></div>${rows(9)}</div></div>`;
+    const cards = (n, cls) => `<div class="sk-cards">${Array.from({ length: n }, () => `<div class="sk sk-cardbox${cls ? " " + cls : ""}"></div>`).join("")}</div>`;
+
     if (DETAIL_SEGS.has(seg)) {
-      return `<div class="wrap page skel" aria-busy="true">
-        <div class="sk sk-crumb"></div>
+      return `<div class="wrap page skel" aria-busy="true" aria-label="Loading…">${crumb}
         <div class="sk-hero"><div class="sk sk-ava"></div><div class="sk-lines">
           <div class="sk sk-row" style="width:52%;height:26px"></div>
           <div class="sk sk-row" style="width:36%"></div>
           <div class="sk sk-row" style="width:62%;height:12px"></div></div></div>
-        <div class="sk-tiles">${Array.from({ length: 6 }, () => `<div class="sk"></div>`).join("")}</div>
+        <div class="sk-tiles">${Array.from({ length: 5 }, () => `<div class="sk"></div>`).join("")}</div>
         ${tableCard}</div>`;
     }
-    return `<div class="wrap page skel" aria-busy="true">
-      <div class="sk sk-crumb"></div>
-      <div style="display:flex;justify-content:space-between;gap:16px;margin-bottom:18px">
-        <div class="sk sk-row" style="width:230px;height:26px"></div>
-        <div class="sk sk-row" style="width:130px;height:20px"></div></div>
-      ${tableCard}</div>`;
+    if (seg === "") {   // home — editorial hero + explore cards
+      return `<div class="wrap page skel" aria-busy="true" aria-label="Loading…">
+        <div class="sk sk-row" style="width:130px;height:12px;margin-bottom:18px"></div>
+        <div class="sk sk-row" style="width:84%;height:40px"></div>
+        <div class="sk sk-row" style="width:60%;height:40px;margin-top:10px"></div>
+        <div class="sk sk-row" style="width:72%;height:15px;margin:20px 0 22px"></div>
+        <div class="sk sk-search" style="max-width:520px"></div>
+        <div style="height:20px"></div>${cards(6)}</div>`;
+    }
+    if (GRID_SEGS.has(seg)) {
+      return `<div class="wrap page skel" aria-busy="true" aria-label="Loading…">${crumb}
+        <div class="sk-titlebar"><div class="sk sk-row" style="width:180px;height:26px"></div></div>
+        ${cards(6, "tall")}</div>`;
+    }
+    const toolbar = FILTER_TABLE_SEGS.has(seg) ? `<div class="sk-bar">
+      <div class="sk sk-search" style="flex:1 1 240px"></div>
+      <div class="sk sk-btn"></div><div class="sk sk-btn sm"></div>
+      <div class="sk sk-row" style="width:90px;height:13px;margin-left:auto"></div></div>` : "";
+    return `<div class="wrap page skel" aria-busy="true" aria-label="Loading…">${crumb}
+      <div class="sk-titlebar"><div class="sk sk-row" style="width:190px;height:26px"></div><div class="sk sk-row" style="width:130px;height:34px"></div></div>
+      ${toolbar}${tableCard}</div>`;
   }
 
   /* ================= ROUTER ================= */
