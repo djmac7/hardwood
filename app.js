@@ -3021,6 +3021,8 @@
     const mb = $("#moreBtn"); if (mb) mb.classList.toggle("on", !!$(".navmore-menu a.on"));
     window.scrollTo(0, 0);
     const tt = $("#toTop"); if (tt) { tt.classList.remove("show"); }   // reset back-to-top on navigation
+    // quiet content entrance on every route — but leave the home page's bespoke .reveal choreography alone
+    const pageEl = app.querySelector(".page"); if (pageEl && !pageEl.querySelector(".reveal")) pageEl.classList.add("pg-enter");
     revealInit();
     navProg.done();
   }

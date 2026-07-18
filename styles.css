@@ -17,6 +17,8 @@ html{scroll-behavior:smooth}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.5;
   -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 a{color:inherit;text-decoration:none}
+/* on-brand text selection */
+::selection{background:color-mix(in srgb,var(--accent) 26%,transparent);color:var(--ink)}
 /* keyboard focus rings (were missing) — pointer users are unaffected */
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:5px}
 /* visually-hidden (screen-reader only) — used for the per-view <h1> and helper labels */
@@ -223,6 +225,8 @@ table.ref .who .nm,table.ref .who a{white-space:nowrap;overflow:hidden;text-over
 table.ref td.grow,table.ref th.grow{width:99%}            /* absorbs slack so other cols size to content */
 table.ref td.num,table.ref th.num{text-align:center;color:var(--ink-3);width:1%;white-space:nowrap}
 table.ref tbody tr.clickable{cursor:pointer}
+/* legible interactivity: a clickable row grows a quiet coral edge on hover/keyboard focus */
+table.ref tbody tr.clickable:hover td:first-child,table.ref tbody tr.clickable:focus-visible td:first-child{box-shadow:inset 2px 0 0 var(--accent)}
 /* Mobile: dense stat tables scroll horizontally with a pinned first column. Tighten
    spacing, cap the name column (ellipsis), and set names in the narrower sans face so
    the stat columns are visible without a scroll, and a stronger right-edge fade hints
@@ -416,6 +420,11 @@ footer .disc{font-family:var(--mono);font-size:11px;color:var(--ink-3);margin-to
 /* reveal */
 .reveal{opacity:0;transform:translateY(12px)}
 .reveal.in{opacity:1;transform:none;transition:opacity .55s ease,transform .55s cubic-bezier(.22,1,.36,1)}
+/* quiet, universal page entrance — every route settles in the same considered way
+   (not just the home page), so navigation feels intentional rather than a hard cut */
+.pg-enter{animation:pg-enter .34s cubic-bezier(.22,1,.36,1) both}
+@keyframes pg-enter{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.pg-enter{animation:none}}
 
 @media (max-width:900px){.mast-grid{grid-template-columns:1fr;gap:26px}.phead .inner{grid-template-columns:1fr}.jersey{width:96px;height:96px}.jersey .num{font-size:44px}.thead .inner{grid-template-columns:1fr}.recordbig{text-align:left;align-items:flex-start}}
 
