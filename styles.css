@@ -478,6 +478,9 @@ footer .disc{font-family:var(--mono);font-size:11px;color:var(--ink-3);margin-to
 .ava{position:relative;display:inline-grid;place-items:center;flex:none;overflow:hidden;background:var(--panel-2);border:1px solid var(--line-soft)}
 .ava img{position:absolute;inset:0;width:100%;height:100%;display:block;opacity:0;transition:opacity .18s ease}
 .ava img.ldd{opacity:1}
+/* once the photo/logo has loaded, hide the initials it sits on — otherwise the transparent
+   areas of a headshot/logo PNG let the monogram show through behind the image */
+.ava img.ldd ~ .ava-mono{opacity:0}
 .ava.shot img{object-fit:cover;object-position:top center}
 .ava.logo{background:#fff;border-radius:50%}          /* team logos render circular */
 .ava.logo img{object-fit:contain;padding:11%}
