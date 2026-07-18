@@ -131,7 +131,7 @@ main{min-height:70vh}
 .crumb{display:flex;gap:8px;align-items:center;font-family:var(--mono);font-size:12px;color:var(--ink-3);margin-bottom:20px}
 .crumb a:hover{color:var(--accent-deep)}
 .crumb .sep{opacity:.5}
-.section-title{display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin:0 0 16px;flex-wrap:wrap}
+.section-title{display:flex;align-items:baseline;justify-content:space-between;gap:6px 16px;margin:0 0 16px;flex-wrap:wrap}
 .section-title h2{font-size:24px;letter-spacing:-.02em}
 .section-title .link{font-family:var(--mono);font-size:12px;color:var(--ink-3)}
 .section-title .link:hover{color:var(--accent-deep)}
@@ -237,7 +237,7 @@ table.ref tbody tr.clickable{cursor:pointer}
   table.ref th,table.ref td{padding:8px 10px}
   table.ref td{font-size:12.5px}
   table.ref th{font-size:9.5px}
-  table.ref .who{max-width:40vw}
+  table.ref .who{max-width:56vw}   /* the (sticky) first column is the row's identity — give names room */
   table.ref .who a,table.ref .who .nm{font-family:var(--sans);font-size:13.5px;font-weight:600;letter-spacing:-.01em}
 }
 .tm-tag{display:inline-flex;align-items:center;gap:6px}
@@ -615,10 +615,10 @@ footer .disc{font-family:var(--mono);font-size:11px;color:var(--ink-3);margin-to
   .phead h1{font-size:26px}
   .thead .inner{grid-template-columns:1fr;gap:16px}
   .recordbig{text-align:left;align-items:flex-start}
-  /* stacked hero: drop the vertical dividers (they leave stray lines when items wrap) */
-  .thead .meta{gap:11px 22px}
-  .thead .meta .b{padding-right:0;margin-right:0;border-right:0}
-  .bio .b{padding-right:14px;margin-right:14px}
+  /* masthead meta: an even 2-col grid instead of ragged flex-wrap — no stray dividers, no
+     uneven vertical gaps from items packing greedily at different widths */
+  .thead .meta,.bio{display:grid;grid-template-columns:1fr 1fr;gap:14px 16px}
+  .thead .meta .b,.bio .b{padding:0;margin:0;border-right:0;min-width:0}
   .tile{flex-basis:40%}
   .tile .v{font-size:23px}
   .section-title h2{font-size:22px}
@@ -1388,9 +1388,15 @@ table.ref tr.benchsep td{border-top:1px solid var(--line-strong)}
 @media (max-width:640px){
   .pt-bar{gap:8px}
   .pt-search-wrap{flex:1 1 100%;order:-1}
-  .pt-count{margin-left:auto;order:2}
+  .pt-count{margin-left:auto;order:2;font-size:11.5px}
   .pt-pills{order:3;flex-basis:100%}
   .pt-panel{max-width:calc(100vw - 20px)!important}
+  /* Filter stays labelled (primary action); Columns + Copy-link collapse to square icon
+     buttons so the toolbar reads as one tidy row instead of a cramped stack of pills */
+  .pt-cols .pt-btn-t,.pt-share .pt-share-t{display:none}
+  .pt-cols,.pt-share{width:36px;padding:0;gap:0;justify-content:center;flex:none}
+  .pt-share{order:1}
+  .pt-reset{order:1;padding:0 8px}
 }
 
 /* offseason recap strip on the home page */
@@ -1486,8 +1492,7 @@ table.ref tr.benchsep td{border-top:1px solid var(--line-strong)}
   .phead .ava.hero,.thead .ava.hero{width:66px;height:66px;border-radius:14px}
   .phead .pos{font-size:11px}
   .phead h1{font-size:24px;line-height:1.06;margin:3px 0 9px}
-  .bio{gap:15px 16px;margin:10px 0 12px}
-  .bio .b{padding-right:16px;margin-right:0}
+  .bio{margin:10px 0 12px}
   .chip-row{gap:6px}
   .thead .inner{padding:16px}
   .thead h1{font-size:24px}
@@ -1507,7 +1512,6 @@ table.ref tr.benchsep td{border-top:1px solid var(--line-strong)}
 
 @media (max-width:400px){
   .phead h1,.thead h1{font-size:22px}
-  .bio .b{border-right:0;padding-right:12px}
 }
 
 /* grid/flex items that contain a horizontally-scrolling table must be allowed to

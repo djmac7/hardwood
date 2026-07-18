@@ -2204,7 +2204,10 @@
   function ptSyncUrl() {
     const s = PT.sort, d = PT.cfg.defaultSort, def = ptDefaultCols(PT.cfg);
     const colsCustom = PT.visCols.length !== def.length || PT.visCols.some((k, i) => k !== def[i]);
-    const active = PT.q || PT.filters.length || (s && (s.k !== d.k || s.dir !== d.dir)) || colsCustom;
+    // a view is "shareable" when the query/filters/sort differ from default. Column choice is a
+    // persistent personal preference (localStorage), so it shouldn't make every page look active —
+    // but if the view IS shareable, carry the columns along too.
+    const active = PT.q || PT.filters.length || (s && (s.k !== d.k || s.dir !== d.dir));
     const base = "#/" + PT.basePath;
     if (!active) { if (location.hash !== base) history.replaceState(null, "", base); return; }
     const payload = { q: PT.q || undefined, f: PT.filters.length ? PT.filters : undefined, s: PT.sort, c: colsCustom ? PT.visCols : undefined };
@@ -2467,7 +2470,7 @@
         <div class="pt-search-wrap"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
           <input id="ptQ" type="text" placeholder="${esc(cfg.searchPlaceholder || "Search…")}" autocomplete="off" spellcheck="false"></div>
         <button class="pt-add" id="ptAdd"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 6h16M7 12h10M10 18h4"/></svg>Filter<span class="pt-add-badge" id="ptAddBadge" hidden></span></button>
-        <button class="pt-add pt-cols" id="ptCols" title="Show or hide columns"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="1.5"/><path d="M9.5 4v16M15 4v16"/></svg>Columns</button>
+        <button class="pt-add pt-cols" id="ptCols" title="Show or hide columns"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="1.5"/><path d="M9.5 4v16M15 4v16"/></svg><span class="pt-btn-t">Columns</span></button>
         <div class="pt-pills" id="ptPills"></div>
         <button class="pt-share" id="ptShare" hidden title="Copy a link to this exact view"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1"/></svg><span class="pt-share-t">Copy link</span></button>
         <button class="pt-reset" id="ptReset" hidden>Reset</button>
