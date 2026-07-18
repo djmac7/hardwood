@@ -2344,6 +2344,59 @@
     wrap.addEventListener("scroll", st.onHScroll, { passive: true });
     PT_STICK = st; position();
   }
+  // --- generic sticky headers for non-filter tables (standings, box scores): same fixed-clone
+  //     technique as the filter table, but there can be several per page (East/West, away/home),
+  //     so each table gets its own bar. Only tall tables (≥10 rows) qualify — short ones don't
+  //     scroll their header out of view. Scoped by route (STICKY_SEGS) to steer clear of views
+  //     whose tables re-render in place (e.g. the player career stat-view toggle). ---
+  let STICKIES = [];
+  const STICKY_SEGS = new Set(["standings", "game"]);
+  function stickyTablesTeardown() {
+    STICKIES.forEach((s) => {
+      removeEventListener("scroll", s.onScroll); removeEventListener("resize", s.onResize);
+      s.wrap.removeEventListener("scroll", s.onHScroll); s.clone.remove();
+    });
+    STICKIES = [];
+  }
+  function makeSticky(table, wrap) {
+    const thead = table.querySelector("thead"); if (!thead) return null;
+    const clone = document.createElement("div");
+    clone.className = "pt-stick"; clone.hidden = true; clone.setAttribute("aria-hidden", "true");
+    clone.innerHTML = `<div class="pt-stick-scroll"><table class="ref"><thead>${thead.innerHTML}</thead></table></div>`;
+    document.body.appendChild(clone);
+    const inner = clone.firstElementChild, cloneTable = clone.querySelector("table");
+    const TOP = 60, st = { clone, wrap, measured: false };
+    const measure = () => {
+      cloneTable.style.width = table.offsetWidth + "px";
+      const real = thead.querySelectorAll("th"), cl = cloneTable.querySelectorAll("th");
+      real.forEach((th, i) => { if (cl[i]) cl[i].style.width = th.getBoundingClientRect().width + "px"; });
+      st.measured = true;
+    };
+    const position = () => {
+      const tr = table.getBoundingClientRect();
+      if (!(tr.top < TOP && tr.bottom > TOP + 44)) { if (!clone.hidden) clone.hidden = true; return; }
+      if (clone.hidden || !st.measured) { clone.hidden = false; measure(); }
+      const wr = wrap.getBoundingClientRect();
+      clone.style.left = wr.left + "px"; clone.style.width = wr.width + "px"; inner.scrollLeft = wrap.scrollLeft;
+    };
+    st.onScroll = () => requestAnimationFrame(position);
+    st.onResize = () => { st.measured = false; position(); };
+    st.onHScroll = () => { inner.scrollLeft = wrap.scrollLeft; };
+    addEventListener("scroll", st.onScroll, { passive: true });
+    addEventListener("resize", st.onResize);
+    wrap.addEventListener("scroll", st.onHScroll, { passive: true });
+    position();
+    return st;
+  }
+  function stickyTablesSetup(seg) {
+    stickyTablesTeardown();
+    if (!STICKY_SEGS.has(seg) || matchMedia("(max-width:700px)").matches) return;
+    $$("#app .tbl-wrap > table.ref:not(.pt-table)").forEach((table) => {
+      if (table.querySelectorAll("tbody tr").length < 10) return;   // only tables tall enough to scroll their header away
+      const wrap = table.closest(".tbl-wrap"); if (!wrap) return;
+      const st = makeSticky(table, wrap); if (st) STICKIES.push(st);
+    });
+  }
   function ptRenderBody(rows) {
     const cols = ptShownCols();
     const tb = $("#ptBody");
@@ -3034,7 +3087,7 @@
     PT_URLSTATE = null;
     if (qi >= 0) { const m = /(?:^|&)v=([^&]+)/.exec(raw.slice(qi + 1)); if (m) { try { PT_URLSTATE = JSON.parse(decodeURIComponent(m[1])); } catch (e) {} } }
     if (seg === "betting" && !SHOW_BETTING) { location.replace("#/"); return; }
-    hideTT(); closeMenu(); closeMore(); ptStickyTeardown();
+    hideTT(); closeMenu(); closeMore(); ptStickyTeardown(); stickyTablesTeardown();
     app.innerHTML = skeleton(seg);
     setSEO(SECTION_SEO[seg] ? SECTION_SEO[seg][0] : null, SECTION_SEO[seg] ? SECTION_SEO[seg][1] : "A modern NBA reference — every player and team, all-time leaders, standings, awards, salaries and history from 1947 to today.");
     try {
@@ -3085,6 +3138,7 @@
     // quiet content entrance on every route — but leave the home page's bespoke .reveal choreography alone
     const pageEl = app.querySelector(".page"); if (pageEl && !pageEl.querySelector(".reveal")) pageEl.classList.add("pg-enter");
     revealInit();
+    stickyTablesSetup(seg);
     navProg.done();
   }
 
