@@ -14,6 +14,12 @@ $PY build/fetch_live.py injuries odds scores standings >> "$LOG" 2>&1
 $PY build/fetch_news.py >> "$LOG" 2>&1
 $PY build/write_status.py >> "$LOG" 2>&1
 
+# Integrity gate: never let a bad refresh through (empty box scores, re-inflated salaries, …)
+if ! $PY build/validate_data.py >> "$LOG" 2>&1; then
+  echo "!!! data validation FAILED — review build/refresh.log before committing" | tee -a "$LOG"
+  exit 1
+fi
+
 MARK="build/.daily-stamp"
 if [ ! -f "$MARK" ] || find "$MARK" -mmin +1200 2>/dev/null | grep -q .; then
   echo "=== $(date '+%Y-%m-%d %H:%M') daily ===" >> "$LOG"

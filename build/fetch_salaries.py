@@ -215,3 +215,7 @@ print("wrote data/salaries.json")
 # backfill team attribution from player logs + recompute team totals
 import subprocess, sys
 subprocess.run([sys.executable, os.path.join(HERE, "fix_salary_teams.py")], check=True)
+# IMPORTANT: some upstream CSVs are inflation-adjusted (not nominal) for 2017-18 and
+# 2020-21..2023-24. Re-apply the Basketball-Reference-verified figures last so a rebuild
+# can never re-introduce the ~20% salary inflation. (See build/apply_salary_overrides.py.)
+subprocess.run([sys.executable, os.path.join(HERE, "apply_salary_overrides.py")], check=True)

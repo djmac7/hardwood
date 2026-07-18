@@ -27,9 +27,18 @@ jobs:
         run: |
           python3 build/fetch_live.py rosters contracts draft
           python3 build/fill_history.py
+          python3 build/build_team_lineage.py
           python3 build/write_status.py
       - name: Rebuild prerendered SEO pages + sitemap
         run: python3 build/build_seo.py
+      - name: Rebuild players filter table
+        run: python3 build/build_players_table.py
+      - name: Rebuild teams + per-season player filter tables
+        run: |
+          python3 build/build_teams_table.py
+          python3 build/build_players_season.py
+      - name: Validate data (block bad refreshes)
+        run: python3 build/validate_data.py
       - name: Commit if changed
         run: |
           git config user.name  "hardwood-bot"

@@ -3,10 +3,13 @@
    Async data access; official-CDN logos/headshots with fallbacks.
    ============================================================ */
 (function () {
-  const V = "39";
+  const V = "44";
   // Injury report is hidden site-wide until we have reliable, injury-specific data for
   // every player (the ESPN feed is offseason transaction noise). Flip to true to restore.
   const SHOW_INJURIES = false;
+  // Betting / slate section hidden for now (legal/age-gating review pending). Flip to true to restore;
+  // the nav links live in index.html (search "data-route=\"betting\"").
+  const SHOW_BETTING = false;
   const app = document.getElementById("app");
   const tt = document.getElementById("tt");
   const $ = (s, r = document) => r.querySelector(s);
@@ -38,6 +41,14 @@
   const getInjuries = () => jl(`data/injuries.json`);
   const getStatus = () => jl(`data/status.json`);
   const getOdds = () => jl(`data/odds.json`);
+  let _ptCache = null;
+  const getPlayersTable = () => _ptCache ? Promise.resolve(_ptCache) : j(`data/players_table.json?v=${V}`).then((d) => (_ptCache = d));
+  let _ttCache = null;
+  const getTeamsTable = () => _ttCache ? Promise.resolve(_ttCache) : j(`data/teams_table.json?v=${V}`).then((d) => (_ttCache = d));
+  let _fmap = null;   // historical franchise abbr → modern abbr (e.g. SEA → OKC), for URL redirects
+  const getFranchiseMap = () => _fmap ? Promise.resolve(_fmap) : j(`data/franchise_map.json?v=${V}`).then((d) => (_fmap = d)).catch(() => (_fmap = {}));
+  const _psCache = {};
+  const getPlayersSeason = (yr) => _psCache[yr] ? Promise.resolve(_psCache[yr]) : j(`data/players_season/${yr}.json?v=${V}`).then((d) => (_psCache[yr] = d));
 
   let META, SEARCH, SMAP = {};
 
@@ -167,7 +178,11 @@
   const isRealTeam = (ab) => ab && !/^\d?TM$|^TOT$/.test(ab) && !!META.names[ab];
   const nbaOf = (id) => (SMAP[id] ? SMAP[id][6] : null);
 
-  window.__imgfail = function (img) { img.style.display = "none"; const m = img.parentNode && img.parentNode.querySelector(".ava-mono"); if (m) m.style.opacity = 1; };
+  // Avatars show a team-colour monogram by default and only reveal the CDN image once it
+  // actually loads — so there's no empty-circle flash while loading, and a blocked/broken
+  // CDN degrades to the monogram instead of a blank.
+  window.__imgok = function (img) { img.classList.add("ldd"); };
+  window.__imgfail = function (img) { img.remove(); };
 
   function teamLogo(ab, size = "md", season) {
     const m = tMeta(ab), color = tColor(ab), mono = `<span class="ava-mono" style="background:${color};color:${textOn(color)}">${esc(ab)}</span>`;
@@ -175,13 +190,13 @@
     // use their period logo from basketball-reference, season-specific when we know it.
     let url = (m && m.logo) || (META.histLogos && META.histLogos[ab]) || null;
     if (url && season && !(m && m.logo)) url = url.replace(/-\d+\.png$/, `-${season}.png`);
-    if (url) return `<span class="ava logo ${size}"><img src="${url}" alt="" loading="lazy" onerror="__imgfail(this)"><span class="ava-mono" style="opacity:0;background:${color};color:${textOn(color)}">${esc(ab)}</span></span>`;
+    if (url) return `<span class="ava logo ${size}"><img src="${url}" alt="" loading="lazy" onload="__imgok(this)" onerror="__imgfail(this)"><span class="ava-mono" style="background:${color};color:${textOn(color)}">${esc(ab)}</span></span>`;
     return `<span class="ava logo ${size}">${mono}</span>`;
   }
   function headshot(id, name, team, size = "md") {
     const nba = nbaOf(id), color = tColor(team), init = initials(name);
     const mono = `<span class="ava-mono" style="background:${color};color:${textOn(color)}">${esc(init)}</span>`;
-    if (nba) return `<span class="ava shot ${size}"><img src="${META.headshotBase}${nba}.png" alt="" loading="lazy" onerror="__imgfail(this)"><span class="ava-mono" style="opacity:0;background:${color};color:${textOn(color)}">${esc(init)}</span></span>`;
+    if (nba) return `<span class="ava shot ${size}"><img src="${META.headshotBase}${nba}.png" alt="" loading="lazy" onload="__imgok(this)" onerror="__imgfail(this)"><span class="ava-mono" style="background:${color};color:${textOn(color)}">${esc(init)}</span></span>`;
     return `<span class="ava shot ${size}">${mono}</span>`;
   }
   function teamTag(ab, withLogo = false) {
@@ -357,6 +372,9 @@
     const champAb = S.champion && S.champion.team;
     const featIds = (L.pts || []).slice(0, 6).map((r) => r[0]);
     const recent = gidx && gidx.games ? gidx.games.slice(-5).reverse() : [];
+    // Offseason (no games for >10 days): surface evergreen postseason content up top so the
+    // home page never feels stale between June and October.
+    const offseason = recent.length ? (Date.now() - new Date(recent[0].date + "T12:00:00Z").getTime()) / 86400000 > 10 : false;
     app.innerHTML = `
     <section class="hero2 reveal">
       <div class="wrap">
@@ -382,8 +400,20 @@
     </section>
 
     <div class="wrap">
+      ${offseason && champAb ? `<section class="reveal off-recap card big pad" style="--tc:${tColor(champAb)}">
+        <div class="off-l">
+          <span class="eyebrow">${seasonLabel(cur)} · season complete</span>
+          <h3>${teamLogo(champAb, "sm")} <a href="#/team/${champAb}">${esc(tName(champAb))}</a> — champions</h3>
+          ${S.champion && S.champion.fmvp ? `<p class="muted" style="margin-top:4px">Finals MVP · <a href="#/player/${S.champion.fmvp_id}" style="color:var(--accent-deep)">${esc(S.champion.fmvp)}</a></p>` : ""}
+        </div>
+        <div class="off-links">
+          <a class="link" href="#/bracket/${cur}">Playoff bracket →</a>
+          <a class="link" href="#/season/${cur}">Season in review →</a>
+          <a class="link" href="#/leaders/all">All-time leaders →</a>
+        </div>
+      </section>` : ""}
       ${recent.length ? `<section class="reveal home-scores">
-        <div class="section-title small"><h2>Recent scores</h2><a class="link" href="#/games">All scores →</a></div>
+        <div class="section-title small"><h2>${offseason ? "Final games" : "Recent scores"}</h2><a class="link" href="#/games">All scores →</a></div>
         <div class="mfeed home-mfeed">${recent.map(matchRow).join("")}</div>
       </section>` : ""}
 
@@ -469,7 +499,11 @@
     const games = gidx.games.filter((g) => g.hs != null && g.as != null);
     const byDate = {}; games.forEach((g) => (byDate[g.date] = byDate[g.date] || []).push(g));
     const slateDate = Object.keys(byDate).sort().pop();
-    const slate = byDate[slateDate] || [];
+    // "Today's slate" only makes sense during the season. If the newest game is well in the
+    // past (offseason / between seasons), don't present a months-old game as today's.
+    const daysStale = slateDate ? Math.floor((Date.now() - new Date(slateDate + "T12:00:00Z").getTime()) / 86400000) : Infinity;
+    const offseason = daysStale > 10;
+    const slate = offseason ? [] : (byDate[slateDate] || []);
     const trend = (ab) => {
       const gs = games.filter((g) => g.h === ab || g.a === ab).sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, 10);
       if (!gs.length) return null;
@@ -496,10 +530,10 @@
     setSEO("Today's Slate — Matchups & Trends", "NBA matchup trends, recent form and player prop context for today's slate.");
     app.innerHTML = `<div class="wrap page">
       <div class="crumb"><a href="#/">Home</a><span class="sep">/</span><span>Betting</span></div>
-      <div class="section-title"><div><span class="eyebrow">Matchups & trends · ${slateDate ? fmtDate(slateDate, true) : "latest"}</span><h2>Today's slate</h2></div></div>
+      <div class="section-title"><div><span class="eyebrow">${offseason ? "Offseason · " + seasonLabel(META.current) + " season complete" : "Matchups & trends · " + (slateDate ? fmtDate(slateDate, true) : "latest")}</span><h2>${offseason ? "Matchups & trends" : "Today's slate"}</h2></div></div>
       <div class="rg-note">Trends are informational only and not betting advice. 21+. Gambling problem? Call <b>1-800-GAMBLER</b>.</div>
       <div class="ad-inline"><span class="lbl">Sponsored</span><div class="slot">Sportsbook placement · 728×90</div></div>
-      <div class="bhgrid">${slate.length ? slate.map(gameCard).join("") : `<p class="muted">No games on the current slate — the season is between dates.</p>`}</div>
+      <div class="bhgrid">${slate.length ? slate.map(gameCard).join("") : `<p class="muted">${offseason ? `The ${seasonLabel(META.current)} season is complete — no games on the slate. Season leaders and trends are below.` : "No games on the current slate — the season is between dates."}</p>`}</div>
       ${props.length ? `<div class="section-title small" style="margin-top:26px"><div><h2>Player props to watch</h2></div><span class="hint">season leaders · tap for trends</span></div>
         <div class="ptiles">${props.map((r) => { const ij = byPlayer[r[0]]; return `<a class="ptile" href="#/player/${r[0]}"><span class="ptile-mark">${esc(initials(r[1]))}</span><span class="ptile-body"><span class="ptile-tag">${esc(r[2])} · ${one(r[3])} PPG${ij ? ` <span class="inj-tag ${ij.status === "Out" ? "out" : "dtd"}">${ij.status === "Out" ? "OUT" : "GTD"}</span>` : ""}</span><b>${esc(r[1])}</b><span class="ptile-d">Points, rebounds & assists trends</span></span><span class="ptile-go">→</span></a>`; }).join("")}</div>` : ""}
     </div>`;
@@ -570,6 +604,101 @@
       ["Your choices", "You can clear stored preferences by clearing your browser data. You can also use your browser or device privacy controls to limit tracking."],
       ["Changes", "We may update this policy periodically. Material changes will be reflected by updating the date on this page."],
     ]);
+  }
+  async function renderSources() {
+    setSEO("Data & Sources", "Where Hardwood's numbers come from, and how every figure is checked before it ships.");
+    let refreshed = "";
+    try { const st = await getStatus(); if (st && st.refreshed) refreshed = fmtDate(st.refreshed.slice(0, 10), true); } catch (e) {}
+    const src = (name, url, what) => `<li><a class="link" href="${url}" target="_blank" rel="noopener">${esc(name)}</a> — ${what}</li>`;
+    app.innerHTML = `<div class="wrap page" style="max-width:760px">
+      <div class="crumb"><a href="#/">Home</a><span class="sep">/</span><span>Data &amp; sources</span></div>
+      <div class="section-title"><div><span class="eyebrow">Data &amp; methodology</span><h2>Data &amp; sources</h2></div></div>
+      <div class="legal">
+        <p>Accuracy is the point of Hardwood. Every figure is compiled from public, authoritative sources and cross-checked before it ships. This page lists exactly where the numbers come from and how they're verified.${refreshed ? ` Live data was last refreshed <b>${refreshed}</b>.` : ""}</p>
+        <h3>Sources</h3>
+        <ul class="src-list">
+          ${src("Basketball-Reference", "https://www.basketball-reference.com", "the reference standard for career stats, contracts and salaries — the source of truth we reconcile salary figures against")}
+          ${src("ESPN", "https://www.espn.com/nba/", "live scores, standings, box scores, team logos and player headshots for the current season")}
+          ${src("Public historical box-score data", "https://www.kaggle.com/datasets?search=nba", "game-by-game box scores forming the base layer, from 1947 through the 2025-26 season")}
+          ${src("U.S. Bureau of Labor Statistics", "https://www.bls.gov/cpi/", "CPI-U figures used to restate historical salaries in today's dollars")}
+        </ul>
+        <h3>How salaries are checked</h3>
+        <p>Salaries are nominal (not inflation-adjusted) and reconciled player-by-player against Basketball-Reference. Team totals are the sum of each player's cap figure — a waived or bought-out player still counts toward his final team, so a total is not a live cap-sheet number.</p>
+        <h3>How the data stays correct</h3>
+        <p>Every refresh runs an automated integrity gate before it can publish: player points must add up to the team score, made shots can't exceed attempts, quarter lines must total the final, and known-correct salary anchors must not move. A refresh that fails any check is blocked rather than shipped.</p>
+        <h3>Corrections</h3>
+        <p>If you spot something wrong, we want to know — accuracy reports are the most useful feedback we get. Reach us through the contact options in the app.</p>
+        <h3>Attribution</h3>
+        <p>Team names, logos, player likenesses and league marks are the property of their respective owners and are used here for identification and reference only. Hardwood is an independent project and is not affiliated with, endorsed by, or sponsored by any league or team.</p>
+      </div>
+    </div>`;
+  }
+
+  /* ================= PLAYOFF BRACKET ================= */
+  // Reconstructs a season's postseason from the game index: playoff games carry a label like
+  // "East First Round · Game 3" / "NBA Finals · Game 5", so we group them into series, tally
+  // each series result, and lay the rounds out as a bracket that converges on the Finals.
+  const BR_ROUND = (lab) => /first round/i.test(lab) ? 1 : /semifinal/i.test(lab) ? 2 : /conf.*final|conference final/i.test(lab) ? 3 : /nba finals|^finals/i.test(lab) ? 4 : 0;
+  const BR_CONF = (lab) => /^east/i.test(lab) ? "E" : /^west/i.test(lab) ? "W" : "F";
+  async function renderBracket(y) {
+    const yr = +y;
+    let idx, S;
+    try { idx = await getGamesIdx(yr); } catch { return notFound("season"); }
+    S = await getSeason(yr).catch(() => null);
+    const pf = (idx.games || []).filter((g) => g.type === "Playoffs" && g.label);
+    setSEO(`${seasonLabel(yr)} Playoff Bracket`, `The complete ${seasonLabel(yr)} NBA postseason — every series result from the first round to the Finals.`);
+    const crumb = `<div class="crumb"><a href="#/">Home</a><span class="sep">/</span><a href="#/season/${yr}">${seasonLabel(yr)}</a><span class="sep">/</span><span>Bracket</span></div>`;
+    if (!pf.length) {
+      app.innerHTML = `<div class="wrap page">${crumb}
+        <div class="section-title"><div><span class="eyebrow">Postseason</span><h2>${seasonLabel(yr)} playoff bracket</h2></div>${seasonSelect(yr, "bracket")}</div>
+        <p class="muted" style="margin-top:8px">A game-by-game playoff bracket isn't available for this season yet.</p></div>`;
+      wireSeasonSelect(); return;
+    }
+    // group into series keyed by round + conference + the two teams
+    const series = {};
+    for (const g of pf) {
+      const rnd = BR_ROUND(g.label), conf = BR_CONF(g.label);
+      if (!rnd) continue;
+      const pair = [g.a, g.h].sort();
+      const key = rnd + conf + pair.join("");
+      (series[key] = series[key] || { rnd, conf, teams: pair, w: {}, n: 0, last: g }).n++;
+      const s = series[key];
+      const wn = g.hs > g.as ? g.h : g.a;
+      s.w[wn] = (s.w[wn] || 0) + 1;
+      if (g.date > s.last.date) s.last = g;
+    }
+    const list = Object.values(series);
+    // seed order from regular-season record (higher record listed first); play-in seeds may
+    // differ so we don't stamp a seed number — just order the matchup by record.
+    const rec = {}; ((S && S.standings) || []).forEach((r) => (rec[r.abbr] = r.w != null ? r.w : 0));
+    const seriesCard = (s) => {
+      const [wins, losses] = [Math.max(...Object.values(s.w)), Math.min(...(Object.keys(s.w).length > 1 ? Object.values(s.w) : [0]))];
+      const winner = Object.keys(s.w).reduce((a, b) => (s.w[a] >= s.w[b] ? a : b));
+      const other = s.teams.find((t) => t !== winner);
+      const rows = [winner, other].filter(Boolean).sort((a, b) => (rec[b] || 0) - (rec[a] || 0));
+      const row = (ab) => `<a class="br-tm${ab === winner ? " win" : ""}" href="#/team/${ab}"><span class="br-tl">${teamLogo(ab, "xs")}<span class="ab">${ab}</span></span><span class="br-w">${s.w[ab] || 0}</span></a>`;
+      return `<a class="br-series" href="#/game/${s.last.id}" title="${esc(s.last.label.replace(/\s*·.*$/, ""))} — ${winner} in ${s.n}">${rows.map(row).join("")}</a>`;
+    };
+    const col = (rnd, conf, label) => {
+      const cards = list.filter((s) => s.rnd === rnd && s.conf === conf).map((s) => [rec[s.teams.find((t) => t === Object.keys(s.w).reduce((a, b) => (s.w[a] >= s.w[b] ? a : b)))] || 0, s]).sort((a, b) => b[0] - a[0]).map((x) => seriesCard(x[1]));
+      return `<div class="br-col"><div class="br-col-h">${label}</div><div class="br-col-body">${cards.join("")}</div></div>`;
+    };
+    const champ = (S && S.champion && S.champion.team) || (list.find((s) => s.conf === "F") ? (() => { const f = list.find((s) => s.conf === "F"); return Object.keys(f.w).reduce((a, b) => (f.w[a] >= f.w[b] ? a : b)); })() : null);
+    const finalsCol = `<div class="br-finals">
+      <div class="br-col-h">Finals</div>
+      ${list.filter((s) => s.conf === "F").map(seriesCard).join("")}
+      ${champ ? `<div class="br-champ" style="--tc:${tColor(champ)}">${teamLogo(champ, "lg")}<div><span class="eyebrow">Champion</span><b><a href="#/team/${champ}">${esc(tName(champ))}</a></b>${S && S.champion && S.champion.fmvp ? `<span class="fmvp">Finals MVP · <a href="#/player/${S.champion.fmvp_id}">${esc(S.champion.fmvp)}</a></span>` : ""}</div></div>` : ""}
+    </div>`;
+    app.innerHTML = `<div class="wrap page">${crumb}
+      <div class="section-title"><div><span class="eyebrow">Postseason · ${pf.length} games</span><h2>${seasonLabel(yr)} playoff bracket</h2></div>${seasonSelect(yr, "bracket")}</div>
+      <div class="bracket-scroll"><div class="bracket">
+        <div class="br-conf"><div class="br-side-h">East</div><div class="br-rounds">${col(1, "E", "First Round")}${col(2, "E", "Conf. Semis")}${col(3, "E", "Conf. Finals")}</div></div>
+        ${finalsCol}
+        <div class="br-conf rtl"><div class="br-side-h">West</div><div class="br-rounds">${col(3, "W", "Conf. Finals")}${col(2, "W", "Conf. Semis")}${col(1, "W", "First Round")}</div></div>
+      </div></div>
+      <p class="muted" style="font-size:13px;margin-top:14px">Series ordered by regular-season record. Tap a matchup for its box scores.</p>
+    </div>`;
+    wireSeasonSelect();
   }
 
   /* ================= PLAY / PUZZLES ================= */
@@ -917,43 +1046,12 @@
     const cur = META.current, s = +season || cur;
     let idx; try { idx = await getGamesIdx(s); } catch { return notFound("games"); }
     const sel = `<select class="mini-select" id="gmSeasonSel">${META.seasons.map((y) => `<option value="${y}" ${y === s ? "selected" : ""}>${seasonLabel(y)}</option>`).join("")}</select>`;
-    // newest first, grouped by date; the whole season is rendered in scroll-loaded batches
-    const games = idx.games.slice().reverse();
-    const byDate = [];
-    const seen = {};
-    for (const g of games) { if (!seen[g.date]) { seen[g.date] = []; byDate.push([g.date, seen[g.date]]); } seen[g.date].push(g); }
-    const dayHtml = ([date, gs2]) => `<div class="gday"><h3 class="gday-h">${fmtDate(date, true)}<span class="gday-n">${gs2.length} game${gs2.length > 1 ? "s" : ""}</span></h3>
-      <div class="mfeed">${gs2.map(matchRow).join("")}</div></div>`;
-    const BATCH = 12;
-    app.innerHTML = `<div class="wrap page">
+    setSEO(`${seasonLabel(s)} Scores & Results`, `Every ${seasonLabel(s)} NBA game — filter and sort by team, round, margin, total and more.`);
+    app.innerHTML = `<div class="wrap page pt-page">
       <div class="crumb"><a href="#/">Home</a><span class="sep">/</span><span>Scores</span></div>
-      <div class="section-title"><div><span class="eyebrow">${idx.games.length} games · ${byDate.length} game-days · ${seasonLabel(s)}</span><h2>Scores</h2></div>${sel}</div>
-      <div class="slate-legend"><span class="ll">Game quality</span><span><i class="lg clutch"></i>Clutch ≤3</span><span><i class="lg close"></i>Close ≤8</span><span><i class="lg blowout"></i>Blowout ≥20</span></div>
-      <div id="gmFeed">${byDate.slice(0, BATCH).map(dayHtml).join("")}</div>
-      <div class="gm-more" id="gmMore"></div>
-    </div>`;
-    let shown = Math.min(BATCH, byDate.length);
-    const feed = $("#gmFeed"), more = $("#gmMore");
-    let io = null;
-    const loadMore = () => {
-      const next = byDate.slice(shown, shown + BATCH);
-      feed.insertAdjacentHTML("beforeend", next.map(dayHtml).join(""));
-      shown += next.length; sync();
-    };
-    const sync = () => {
-      if (shown >= byDate.length) {
-        if (io) { io.disconnect(); io = null; }
-        more.innerHTML = `<p class="news-foot" style="margin:8px 0 0">All ${idx.games.length} games shown · ${seasonLabel(s)}. Box scores, quarter lines and plus-minus from public game data.</p>`;
-      } else {
-        more.innerHTML = `<button class="btn load-more" id="gmLoadBtn">Load more game-days <span class="muted">· ${byDate.length - shown} left</span></button>`;
-        $("#gmLoadBtn").addEventListener("click", loadMore);
-      }
-    };
-    sync();
-    if ("IntersectionObserver" in window && shown < byDate.length) {
-      io = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting) && io && shown < byDate.length) loadMore(); }, { rootMargin: "700px 0px" });
-      io.observe(more);
-    }
+      <div class="section-title"><div><span class="eyebrow">${idx.games.length} games · ${seasonLabel(s)}</span><h2>Scores</h2></div>${sel}</div>
+      <div id="ptHost"></div></div>`;
+    ptMount($("#ptHost"), GAMES_CFG, idx.games);
     const gs = $("#gmSeasonSel"); if (gs) gs.addEventListener("change", () => (location.hash = `#/games/${gs.value}`));
   }
 
@@ -999,14 +1097,18 @@
     const roster = [...g.box.away.map((p) => ({ ...p, ab: g.away.abbr })), ...g.box.home.map((p) => ({ ...p, ab: g.home.abbr }))].filter((p) => p.min != null && p.pid);
     const leaderOf = (key) => roster.filter((p) => p[key] != null).sort((a, b) => b[key] - a[key])[0];
     const teamTop = (side) => g.box[side].filter((p) => p.pts != null && p.pid).sort((a, b) => b.pts - a.pts)[0];
+    // a side's player box is "populated" only if someone logged minutes or scored — guards stub/missing box data
+    const boxHas = (side) => (g.box[side] || []).some((p) => (p.min || 0) > 0 || (p.pts || 0) > 0);
     const glCard = (cat, key, unit) => { const L = leaderOf(key); if (!L || !L[key]) return ""; return `<div class="gl" onclick="location.hash='#/player/${L.pid}'">${headshot(L.pid, L.name, L.ab, "sm")}<div class="who2"><div class="cat">${cat}</div><div class="nm">${esc(L.name)} · ${L.ab}</div></div><div class="val">${L[key]}<small>${unit}</small></div></div>`; };
     const glCards = [glCard("Points", "pts", "pts"), glCard("Rebounds", "reb", "reb"), glCard("Assists", "ast", "ast")].filter(Boolean);
     const leadersStrip = glCards.length ? `<div class="gleaders">${glCards.join("")}</div>` : "";
-    const topLine = (side) => { const t = teamTop(side); return t ? `<div class="gh-lead"><span><b>${esc(t.name)}</b> ${t.pts} PTS</span></div>` : ""; };
+    const topLine = (side) => { if (!boxHas(side)) return ""; const t = teamTop(side); return t && t.pts != null ? `<div class="gh-lead"><span><b>${esc(t.name)}</b> ${t.pts} PTS</span></div>` : ""; };
 
     const lineRow = (side) => `<tr class="${(side === "home" ? hw : !hw) ? "win" : ""}"><td class="l grow">${teamLogo(g[side].abbr, "xs")} <a href="#/team/${g[side].abbr}">${esc(tName(g[side].abbr))}</a></td>
       ${cols.map((_, i) => `<td>${g[side].q && g[side].q[i] != null ? g[side].q[i] : "—"}</td>`).join("")}<td class="hi">${g[side].score ?? "—"}</td></tr>`;
     const boxTable = (side) => {
+      const win = (side === "home" ? hw : !hw);
+      if (!boxHas(side)) return `<div class="card pad" style="min-width:0"><div class="card-h"><h3>${teamLogo(g[side].abbr, "sm")} ${esc(tName(g[side].abbr))}</h3><span class="hint">${win ? "Win" : "Loss"} · ${g[side].score ?? "—"} pts</span></div><p class="muted" style="padding:14px 2px 6px">Player box score isn't available for this game yet.</p></div>`;
       const players = g.box[side].filter((p) => p.min != null);
       const maxPts = Math.max(1, ...players.map((p) => p.pts || 0));
       const topPts = Math.max(-1, ...players.map((p) => (p.pts == null ? -1 : p.pts)));
@@ -1017,7 +1119,6 @@
         <td class="l grow"><span class="who">${p.pid ? headshot(p.pid, p.name, g[side].abbr, "xs") : ""}${p.pid ? `<a href="#/player/${p.pid}">${esc(p.name)}</a>` : `<span class="nm">${esc(p.name)}</span>`}</span></td>
         <td>${nz(p.min)}</td><td class="hi bar${p.pts != null && p.pts === topPts && topPts > 0 ? " peak" : ""}" style="--b:${((p.pts || 0) / maxPts).toFixed(3)}">${nz(p.pts)}</td><td>${nz(p.reb)}</td><td>${nz(p.ast)}</td><td>${nz(p.stl)}</td><td>${nz(p.blk)}</td><td>${nz(p.tov)}</td>
         <td>${frac(p.fgm, p.fga)}</td><td>${frac(p.tpm, p.tpa)}</td><td>${frac(p.ftm, p.fta)}</td><td class="${p.pm > 0 ? "pos" : p.pm < 0 ? "neg" : ""}">${p.pm == null ? "—" : p.pm > 0 ? "+" + p.pm : p.pm}</td></tr>`;
-      const win = (side === "home" ? hw : !hw);
       return `<div class="card pad" style="min-width:0"><div class="card-h"><h3>${teamLogo(g[side].abbr, "sm")} ${esc(tName(g[side].abbr))}</h3><span class="hint">${win ? "Win" : "Loss"} · ${g[side].score ?? "—"} pts${g[side].fg != null ? " · " + pctf(g[side].fg) + " FG" : ""}</span></div>
         <div class="tbl-wrap"><table class="ref" style="min-width:640px"><thead><tr><th class="l grow">Player</th><th>MIN</th><th>PTS</th><th>REB</th><th>AST</th><th>STL</th><th>BLK</th><th>TOV</th><th>FG</th><th>3P</th><th>FT</th><th>+/−</th></tr></thead>
         <tbody>${ordered.map(prow).join("")}</tbody></table></div></div>`;
@@ -1687,13 +1788,94 @@
   }
 
   /* ================= TEAM ================= */
+  // Aggregate franchise hub (#/team/OKC, no season) — all-time totals + a clickable table of
+  // every season across the franchise's whole lineage, grouped by era name.
+  async function renderTeamHub(ab, t) {
+    const m = tMeta(ab), color = tColor(ab), conf = m ? m.conf : null;
+    const seasons = t.seasons || [];
+    const ttRow = await getTeamsTable().then((d) => d.rows.find((r) => r.i === ab)).catch(() => null);
+    const sal = await getSalaries().catch(() => null);
+    const pay = sal && sal.teamPayroll[ab] ? Object.fromEntries(sal.teamPayroll[ab]) : {};
+    const hasPay = Object.keys(pay).length > 0;
+    // all-time aggregates (prefer the franchise table row; fall back to summing seasons)
+    const W = ttRow ? ttRow.w : seasons.reduce((a, s) => a + s.w, 0);
+    const L = ttRow ? ttRow.l : seasons.reduce((a, s) => a + s.l, 0);
+    const titles = ttRow ? ttRow.titles : seasons.filter((s) => s.champ).length;
+    const poTrips = ttRow ? ttRow.po : seasons.filter((s) => s.po).length;
+    const lastTitle = ttRow ? ttRow.lastTitle : (seasons.filter((s) => s.champ)[0] || {}).season;
+    const bestW = ttRow ? ttRow.bestW : Math.max(...seasons.map((s) => s.w));
+    const latestSeason = seasons[0] ? seasons[0].season : META.current;
+    // distinct eras (oldest→newest) for the "franchise names" line
+    const nameSpan = {};
+    seasons.forEach((s) => { const nm = s.nm || t.name; (nameSpan[nm] = nameSpan[nm] || []).push(s.season); });
+    const eras = Object.entries(nameSpan).map(([nm, ys]) => ({ nm, lo: Math.min(...ys), hi: Math.max(...ys) })).sort((a, b) => a.lo - b.lo);
+    const eraLine = eras.map((e) => `${esc(e.nm)} <span class="muted">${seasonLabel(e.lo)}${e.hi >= META.current ? "–present" : "–" + seasonLabel(e.hi)}</span>`).join(" · ");
+    const tiles = [
+      ["Seasons", seasons.length],
+      ["NBA titles", titles],
+      ["Playoff trips", poTrips],
+      ["All-time win %", winpct(W, L)],
+      lastTitle ? ["Last title", seasonLabel(lastTitle)] : null,
+    ].filter(Boolean);
+
+    setSEO(`${t.name} — Franchise History, All-Time Record & Seasons`,
+      `${t.name} all-time: ${W}–${L} over ${seasons.length} seasons, ${titles} NBA title${titles === 1 ? "" : "s"}. Every season from ${seasonLabel(seasons[seasons.length - 1].season)} to today${eras.length > 1 ? ", including " + eras.slice(0, -1).map((e) => e.nm).join(" and ") : ""}.`,
+      { "@context": "https://schema.org", "@type": "SportsTeam", name: t.name, sport: "Basketball", url: location.href });
+
+    // franchise history table, grouped by era with clickable season rows
+    const NCOL = hasPay ? 8 : 7;
+    let body = "";
+    let curNm = null;
+    seasons.forEach((s) => {
+      const nm = s.nm || t.name;
+      if (nm !== curNm) {
+        curNm = nm;
+        const yrs = nameSpan[nm];
+        body += `<tr class="fh-era"><td colspan="${NCOL}"><span class="fh-era-nm">${esc(nm)}</span><span class="fh-era-yr">${seasonLabel(Math.min(...yrs))} – ${Math.max(...yrs) >= META.current ? "present" : seasonLabel(Math.max(...yrs))}</span></td></tr>`;
+      }
+      const result = s.champ ? `<span class="champ-badge" title="NBA champion">Champion</span>` : (s.po ? `<span class="pill w">Playoffs</span>` : `<span class="muted">—</span>`);
+      body += `<tr class="clickable" onclick="location.hash='#/team/${ab}/${s.season}'" title="${esc(nm)} ${seasonLabel(s.season)} — full season">
+        <td class="l season">${seasonLabel(s.season)}</td><td>${s.w}</td><td>${s.l}</td><td>${winpct(s.w, s.l)}</td>
+        <td>${s.o != null ? s.o.toFixed(1) : "—"}</td><td>${s.d != null ? s.d.toFixed(1) : "—"}</td>
+        ${hasPay ? `<td>${pay[s.season] ? money(pay[s.season]) : "—"}</td>` : ""}
+        <td class="l">${result}</td></tr>`;
+    });
+
+    app.innerHTML = `<div class="wrap page">
+      <div class="crumb"><a href="#/">Home</a><span class="sep">/</span><a href="#/teams">Teams</a><span class="sep">/</span><span>${esc(t.name)}</span></div>
+      <div class="thead"><div class="band" style="background:${color}"></div>
+        <div class="inner">
+          <div class="th-id">${teamLogo(ab, "hero")}
+            <div><div class="pos">${conf ? conf + "ern Conference" : ""} · NBA franchise</div>
+              <h1>${esc(t.name)}</h1>
+              <div class="meta">${bioItem("Franchise span", `${seasonLabel(seasons[seasons.length - 1].season)} – ${seasonLabel(latestSeason)}`)}
+                ${bioItem("Seasons", seasons.length)}${titles ? bioItem("NBA titles", titles) : ""}${conf ? bioItem("Conference", conf) : ""}</div></div></div>
+          <div class="recordbig"><div class="r">${W}–${L}</div><div class="s">all-time · ${winpct(W, L)}</div>
+            <a class="btn-mini" href="#/team/${ab}/${latestSeason}">${seasonLabel(latestSeason)} season →</a></div>
+        </div>
+      </div>
+      ${eras.length ? `<p class="fh-names"><span class="k">Franchise names</span> ${eraLine}</p>` : ""}
+      <div class="tilerow">${tiles.map(([k, v]) => `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("")}</div>
+      <div class="section-title" style="margin-top:24px"><div><span class="eyebrow">Every season · click a row to open it</span><h2>Franchise history</h2></div>${bestW >= 0 ? `<span class="eyebrow">Best: ${bestW} wins</span>` : ""}</div>
+      <div class="card"><div class="tbl-wrap"><table class="ref" style="min-width:560px">
+        <thead><tr><th class="l">Season</th><th>W</th><th>L</th><th>PCT</th><th>ORtg</th><th>DRtg</th>${hasPay ? "<th>Payroll</th>" : ""}<th class="l">Result</th></tr></thead>
+        <tbody>${body}</tbody></table></div></div>
+      <div id="teamNews" style="margin-top:24px"></div>
+    </div>`;
+    teamNews(ab).then((html) => { const el = $("#teamNews"); if (el && html) el.innerHTML = html; });
+  }
+
   async function renderTeam(ab, y) {
+    const fmap = await getFranchiseMap();
+    if (fmap[ab]) { location.replace(`#/team/${fmap[ab]}${y ? "/" + y : ""}`); return; }   // e.g. #/team/SEA → #/team/OKC
     let t; try { t = await getTeam(ab); } catch { return notFound("team"); }
+    if (!y) return renderTeamHub(ab, t);   // no season → aggregate franchise hub
     const sal = await getSalaries().catch(() => null);
     const pay = sal && sal.teamPayroll[ab] ? Object.fromEntries(sal.teamPayroll[ab]) : {};
     const hasPay = Object.keys(pay).length > 0;
     const m = tMeta(ab), color = tColor(ab);
     const latest = (y && t.seasons.find((s) => s.season === +y)) || t.seasons[0];   // selected season drives header/contracts
+    const seasonAb = (latest && latest.ab) || ab;   // abbr the franchise used that season (SEA for OKC's Seattle years)
     const rosterSeason = t.lastSeason || (t.seasons[0] && t.seasons[0].season);      // the season t.roster (live) reflects
     // Season-accurate roster: the latest season uses the live `roster`; past seasons use the
     // reconstructed per-season roster (rostersBySeason). Fall back to the live roster (clearly
@@ -1718,13 +1900,15 @@
     const contracts = teamAt(contractSeason);
     const payroll = contracts.reduce((a, r) => a + r[3], 0);
     let seed = null;
-    if (latest) { try { const S = await getSeason(latest.season); const cs = splitConf(S.standings); const grp = m && cs[m.conf] ? cs[m.conf] : (cs.League || []); const idx = grp.findIndex((x) => x.abbr === ab); if (idx > -1) seed = idx + 1; } catch {} }
+    if (latest) { try { const S = await getSeason(latest.season); const cs = splitConf(S.standings); const grp = m && cs[m.conf] ? cs[m.conf] : (cs.League || []); const idx = grp.findIndex((x) => x.abbr === seasonAb); if (idx > -1) seed = idx + 1; } catch {} }
     const net = latest && latest.o != null ? latest.o - latest.d : null;
     // this team's full schedule + results for the selected season (games exist 1947–present)
     let seasonGames = [];
-    if (latest) { try { const gidx = await getGamesIdx(latest.season); seasonGames = (gidx.games || []).filter((g) => g.a === ab || g.h === ab).sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0)); } catch {} }
+    // standings key off the era abbr (season files), games may use either the era or the modern abbr
+    const isUs = (x) => x === seasonAb || x === ab;
+    if (latest) { try { const gidx = await getGamesIdx(latest.season); seasonGames = (gidx.games || []).filter((g) => isUs(g.a) || isUs(g.h)).sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0)); } catch {} }
     const teamGameRow = (g) => {
-      const home = g.h === ab, opp = home ? g.a : g.h, us = home ? g.hs : g.as, them = home ? g.as : g.hs;
+      const home = isUs(g.h), opp = home ? g.a : g.h, us = home ? g.hs : g.as, them = home ? g.as : g.hs;
       const played = us != null && them != null, w = played && us > them;
       return `<tr class="clickable" onclick="location.hash='#/game/${g.id}'">
         <td class="l grow season">${fmtDate(g.date)}</td>
@@ -1753,11 +1937,11 @@
     })();
     app.innerHTML = `
     <div class="wrap page">
-      <div class="crumb"><a href="#/">Home</a><span class="sep">/</span><a href="#/teams">Teams</a><span class="sep">/</span><span>${esc(t.name)}</span></div>
+      <div class="crumb"><a href="#/">Home</a><span class="sep">/</span><a href="#/teams">Teams</a><span class="sep">/</span><a href="#/team/${ab}">${esc(t.name)}</a><span class="sep">/</span><span>${seasonLabel(latest.season)}</span></div>
       <div class="thead"><div class="band" style="background:${color}"></div>
         <div class="inner">
           <div class="th-id">${teamLogo(ab, "hero", latest && latest.season)}
-            <div><div class="pos">${conf ? conf + "ern Conference" : (latest ? latest.season >= 1971 ? "" : "" : "")}${seed ? " · " + ord(seed) + " seed" : ""}</div>
+            <div><div class="pos">${(latest && latest.nm && latest.nm !== t.name) ? esc(latest.nm) + " · " : ""}${conf ? conf + "ern Conference" : (latest ? latest.season >= 1971 ? "" : "" : "")}${seed ? " · " + ord(seed) + " seed" : ""}</div>
               <h1>${esc(t.name)}</h1>
               <div class="meta">${bioItem("Franchise span", `${seasonLabel(t.seasons[t.seasons.length - 1].season)} – ${seasonLabel(latest.season)}`)}
                 ${bioItem("Seasons", t.seasons.length)}${conf ? bioItem("Conference", conf) : ""}</div></div></div>
@@ -1835,29 +2019,16 @@
             <span class="who">${teamLogo(r[0], "xs")}<a class="nm" href="#/team/${r[0]}">${esc(tName(r[0]))}</a></span>
             <span class="val"><span class="mini"><i style="width:${(r[1] / tmax) * 100}%"></i></span>${money(r[1])}</span></li>`).join("")}</ol></div>
       </div>
-      <div class="section-title" style="margin-top:26px"><div><span class="eyebrow" id="allSalCount"></span><h2>All salaries · ${seasonLabel(yr)}</h2></div>
-        <label class="season-select"><span>Team</span><select class="mini-select" id="salTeamSel"><option value="">All teams</option>${
-          [...new Set(paid.map((r) => r[2]).filter(Boolean))].sort((a, b) => tName(a).localeCompare(tName(b))).map((ab) => `<option value="${ab}">${esc(tName(ab))}</option>`).join("")}</select></label></div>
-      <div class="card" id="allSalCard"></div>
+      <div class="section-title" style="margin-top:26px"><div><span class="eyebrow">${paid.length} player${paid.length === 1 ? "" : "s"} under contract · ${seasonLabel(yr)}</span><h2>All salaries · ${seasonLabel(yr)}</h2></div></div>
+      <div class="pt-page" id="allSalHost"></div>
       <div class="section-title" style="margin-top:26px"><div><span class="eyebrow" id="allTimeEyebrow"></span><h2>Highest single-season salaries, all-time</h2></div>
         ${CPI ? `<div class="tabs" id="inflToggle"><button data-adj="0" aria-selected="true">Nominal</button><button data-adj="1" aria-selected="false">${seasonLabel(CPI.base)} dollars</button></div>` : ""}</div>
       <div class="card" id="allTimeCard"></div>
       <p class="news-foot" style="margin-top:14px" id="allTimeFoot"></p>
     </div>`;
     const s = $("#salSel"); if (s) s.addEventListener("change", () => (location.hash = `#/salaries/${s.value}`));
-    // full salary list for the season, filterable by team
-    const drawAllSal = (team) => {
-      const list = team ? paid.filter((r) => r[2] === team) : paid;
-      $("#allSalCount").textContent = `${list.length} player${list.length === 1 ? "" : "s"}${team ? " · " + tName(team) : ""} · ${seasonLabel(yr)}`;
-      $("#allSalCard").innerHTML = `<div class="tbl-wrap"><table class="ref" style="min-width:460px">
-        <thead><tr><th class="num">#</th><th class="l grow">Player</th><th class="l">Team</th><th>Salary</th></tr></thead>
-        <tbody>${list.map((r, i) => `<tr class="${r[0] ? "clickable" : ""}" ${r[0] ? `onclick="location.hash='#/player/${r[0]}'"` : ""}>
-          <td class="num">${i + 1}</td>
-          <td class="l grow"><span class="who">${headshot(r[0], r[1], r[2], "xs")}${r[0] ? `<a href="#/player/${r[0]}">${esc(r[1])}</a>` : `<span class="nm">${esc(r[1])}</span>`}</span></td>
-          <td class="l">${r[2] ? teamTag(r[2], true) : "—"}</td><td class="hi">${moneyFull(r[3])}</td></tr>`).join("")}</tbody></table></div>`;
-    };
-    drawAllSal("");
-    const tsel = $("#salTeamSel"); if (tsel) tsel.addEventListener("change", () => drawAllSal(tsel.value));
+    // full, filterable salary book for the season
+    ptMount($("#allSalHost"), SALARIES_CFG, paid.map((r) => ({ pid: r[0], name: r[1], t: r[2], sal: r[3] })));
     const drawAllTime = (adj) => {
       const list = adj ? sal.topAllTimeReal : sal.topAllTime;
       $("#allTimeEyebrow").textContent = adj ? `Restated in ${CPI.base}-season dollars` : "Nominal · not inflation-adjusted";
@@ -1968,6 +2139,7 @@
         ${top ? `<div class="card big pad season-best"><span class="eyebrow">Best record</span>
           <div class="sb"><div class="rr">${top.w}–${top.l}</div><div>${teamTag(top.abbr, true)}<div class="muted" style="font-size:12px;margin-top:2px">${winpct(top.w, top.l)}</div></div></div></div>` : ""}
       </div>
+      <div class="section-title" style="margin-top:26px"><h2>Postseason</h2><a class="link" href="#/bracket/${yr}">Playoff bracket →</a></div>
       <div class="section-title" style="margin-top:26px"><h2>Leaders</h2><a class="link" href="#/leaders/${yr}">All categories →</a></div>
       <div class="cardgrid">${["pts", "trb", "ast", "per"].map((c) => leaderCard(S, c)).join("")}</div>
       ${honorsBlock(S.honors)}
@@ -2021,40 +2193,405 @@
   }
 
   /* ================= TEAMS INDEX ================= */
-  async function renderTeamsIndex() {
-    const S = await getSeason(META.current), byAb = Object.fromEntries(S.standings.map((t) => [t.abbr, t]));
-    const cards = (conf) => Object.keys(META.teams).filter((ab) => META.teams[ab].conf === conf)
-      .sort((a, b) => (byAb[b] ? byAb[b].w : 0) - (byAb[a] ? byAb[a].w : 0))
-      .map((ab) => { const t = byAb[ab]; return `<a href="#/team/${ab}" class="tcard"><span class="accentbar" style="background:${tColor(ab)}"></span>
-        ${teamLogo(ab, "lg")}<div class="tc-body"><div class="nm">${esc(tName(ab))}</div>
-        <div class="rec">${t ? `${t.w}–${t.l} · ${winpct(t.w, t.l)}` : "—"}</div></div></a>`; }).join("");
-    app.innerHTML = `<div class="wrap page">
-      <div class="crumb"><a href="#/">Home</a><span class="sep">/</span><span>Teams</span></div>
-      <div class="section-title"><div><span class="eyebrow">${seasonLabel(META.current)} · 30 teams</span><h2>Teams</h2></div><a class="link" href="#/standings">Standings →</a></div>
-      <h3 class="conf-h">Eastern Conference</h3><div class="tcards">${cards("East")}</div>
-      <h3 class="conf-h">Western Conference</h3><div class="tcards">${cards("West")}</div>
-      <div class="section-title" style="margin-top:26px"><h2>Offense against defense</h2></div>
-      <div class="card big pad scatter-card"><div class="chart-hint"><span class="dotpulse"></span>Hover a team · click to open</div><figure id="scatterTeams" style="margin:0"></figure></div>
-    </div>`;
-    drawScatter("scatterTeams", S.standings);
+  /* ================= PLAYERS INDEX ================= */
+  /* ---- Generic Linear-style filterable data table (used by Players, Scores, …) ----
+     A page calls ptMount(host, cfg, rows). cfg.cols is the schema (type ∈
+     text|enum|bool|num|pct|money|date); each column may supply cell(r), getv(r),
+     opts(), match(r,filter) and fmtVal(v). Columns with col:true render; every column
+     with filt!==false is offered in the filter menu. */
+  let PT = { cfg: null, data: [], q: "", filters: [], sort: null, shown: 80, io: null, basePath: "", visCols: [] };
+  let PT_URLSTATE = null;   // pending {q,f,s,c} parsed from a shared ?v= URL, applied on next ptMount
+  function ptSyncUrl() {
+    const s = PT.sort, d = PT.cfg.defaultSort, def = ptDefaultCols(PT.cfg);
+    const colsCustom = PT.visCols.length !== def.length || PT.visCols.some((k, i) => k !== def[i]);
+    const active = PT.q || PT.filters.length || (s && (s.k !== d.k || s.dir !== d.dir)) || colsCustom;
+    const base = "#/" + PT.basePath;
+    if (!active) { if (location.hash !== base) history.replaceState(null, "", base); return; }
+    const payload = { q: PT.q || undefined, f: PT.filters.length ? PT.filters : undefined, s: PT.sort, c: colsCustom ? PT.visCols : undefined };
+    history.replaceState(null, "", base + "?v=" + encodeURIComponent(JSON.stringify(payload)));
+  }
+  const ptCol = (k) => PT.cfg.cols.find((c) => c.k === k);
+  const ptGet = (c, r) => (c.getv ? c.getv(r) : r[c.k]);
+
+  function ptCell(c, r) {
+    if (c.cell) return c.cell(r);
+    const v = ptGet(c, r);
+    if (c.type === "pct") return pctf(v);
+    if (c.type === "money") return v ? "$" + (v / 1e6).toFixed(1) + "M" : "—";
+    if (c.type === "date") return v ? fmtDate(v) : "—";
+    if (c.type === "num") return v != null ? (Number.isInteger(v) ? v : one(v)) : "—";
+    if (c.type === "bool") return c.boolLabels ? esc(v ? c.boolLabels[0] : c.boolLabels[1]) : (v ? "Yes" : "No");
+    return v == null || v === "" ? "—" : esc("" + v);
+  }
+  function ptOptions(c) {
+    if (c.opts) return c.opts();
+    const set = new Set();
+    for (const r of PT.data) { const v = ptGet(c, r); if (v != null && v !== "") set.add(v); }
+    return [...set].sort((a, b) => ("" + a).localeCompare("" + b, undefined, { numeric: true }));
+  }
+  const OPLABEL = { gte: "≥", lte: "≤", eq: "=", between: "between" };
+  function ptFmtVal(c, v) {
+    if (c.fmtVal) return c.fmtVal(v);
+    if (c.type === "pct") return Math.round(v * 100) + "%";
+    if (c.type === "money") return "$" + (v / 1e6).toFixed(v % 1e6 ? 1 : 0) + "M";
+    return v;
+  }
+  function ptPillText(f) {
+    const c = ptCol(f.k);
+    if (c.type === "enum") { const shown = f.vals.slice(0, 2).map((v) => ptFmtVal(c, v)).join(", "); return `${c.label} is ${shown}${f.vals.length > 2 ? " +" + (f.vals.length - 2) : ""}`; }
+    if (c.type === "bool") return `${c.label}: ${c.boolLabels[f.vals[0] ? 0 : 1]}`;
+    if (c.type === "date") return `${c.label} ${f.vals[0] === "0000-01-01" ? "any" : fmtDate(f.vals[0])} – ${f.vals[1] === "9999-12-31" ? "any" : fmtDate(f.vals[1])}`;
+    if (f.op === "between") return `${c.label} ${ptFmtVal(c, f.vals[0])}–${ptFmtVal(c, f.vals[1])}`;
+    return `${c.label} ${OPLABEL[f.op]} ${ptFmtVal(c, f.vals[0])}`;
+  }
+  function ptMatch(r) {
+    if (PT.q && !PT.cfg.search(r, PT.q.toLowerCase())) return false;
+    for (const f of PT.filters) {
+      const c = ptCol(f.k);
+      if (c.match) { if (!c.match(r, f)) return false; continue; }
+      const v = ptGet(c, r);
+      if (c.type === "enum") { if (!f.vals.includes(v)) return false; }
+      else if (c.type === "bool") { if ((v ? 1 : 0) !== f.vals[0]) return false; }
+      else if (c.type === "date") { if (!v || v < f.vals[0] || v > f.vals[1]) return false; }
+      else {
+        if (v == null) return false;
+        if (f.op === "gte" && !(v >= f.vals[0])) return false;
+        if (f.op === "lte" && !(v <= f.vals[0])) return false;
+        if (f.op === "eq" && !(v === f.vals[0])) return false;
+        if (f.op === "between" && !(v >= f.vals[0] && v <= f.vals[1])) return false;
+      }
+    }
+    return true;
+  }
+  function ptResults() {
+    const rows = PT.data.filter(ptMatch);
+    const c = ptCol(PT.sort.k), dir = PT.sort.dir, tb = PT.cfg.tiebreak;
+    rows.sort((a, b) => {
+      let x = ptGet(c, a), y = ptGet(c, b);
+      if (c.type === "text" || c.type === "date") return dir * ("" + (x == null ? "" : x)).localeCompare("" + (y == null ? "" : y), undefined, { numeric: true });
+      x = x == null ? -Infinity : x; y = y == null ? -Infinity : y;
+      return x < y ? -dir : x > y ? dir : ("" + (a[tb] == null ? "" : a[tb])).localeCompare("" + (b[tb] == null ? "" : b[tb]));
+    });
+    return rows;
+  }
+  // which columns can be shown/hidden (everything that renders a value — i.e. not purely
+  // decorative). visible set defaults to cfg `col:true`, overridable per-table + per-URL.
+  const ptDefaultCols = (cfg) => cfg.cols.filter((c) => c.col).map((c) => c.k);
+  const ptColStoreKey = (cfg) => `hw-ptcols-${cfg.key || cfg.noun}`;
+  function ptLoadCols(cfg) {
+    try { const s = JSON.parse(localStorage.getItem(ptColStoreKey(cfg))); if (Array.isArray(s) && s.length) return s; } catch (e) {}
+    return null;
+  }
+  const ptSaveCols = (cfg, keys) => { try { const def = ptDefaultCols(cfg); if (keys.length === def.length && keys.every((k, i) => k === def[i])) localStorage.removeItem(ptColStoreKey(cfg)); else localStorage.setItem(ptColStoreKey(cfg), JSON.stringify(keys)); } catch (e) {} };
+  // shown columns in cfg order, filtered to the current visible set
+  const ptShownCols = () => PT.cfg.cols.filter((c) => PT.visCols.includes(c.k));
+  function ptHeadHtml() {
+    return ptShownCols().map((c) => `<th class="${c.cls || ""}${c.hi ? " hi" : ""}" data-k="${c.k}" role="button" tabindex="0" title="Sort by ${esc(c.label)}">${esc(c.th || c.label)}<span class="pt-arrow"></span></th>`).join("");
+  }
+  // (re)build the header row and wire sort handlers — called on mount and whenever columns change
+  function ptRenderHead() {
+    const tr = $("#ptHead tr"); if (!tr) return;
+    tr.innerHTML = ptHeadHtml();
+    const sortBy = (k) => { PT.sort = { k, dir: PT.sort.k === k ? -PT.sort.dir : (ptCol(k).type === "text" ? 1 : -1) }; PT.shown = 80; ptRerender(); };
+    $$("#ptHead th[data-k]").forEach((th) => { th.addEventListener("click", () => sortBy(th.dataset.k)); th.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); sortBy(th.dataset.k); } }); });
+  }
+  function ptRenderBody(rows) {
+    const cols = ptShownCols();
+    const tb = $("#ptBody");
+    tb.innerHTML = rows.slice(0, PT.shown).map((r) => { const href = PT.cfg.link(r); return `<tr class="${href ? "clickable" : ""}"${href ? ` onclick="location.hash='${href}'"` : ""}>${cols.map((c) => `<td class="${c.cls || ""}${c.hi ? " hi" : ""}">${ptCell(c, r)}</td>`).join("")}</tr>`; }).join("")
+      || `<tr><td colspan="${cols.length}" class="l" style="padding:26px 12px;color:var(--ink-3)">Nothing matches these filters. <a href="#" id="ptClear2" style="color:var(--accent-deep)">Clear</a></td></tr>`;
+    $("#ptCount").textContent = rows.length.toLocaleString() + " " + (rows.length === 1 ? PT.cfg.noun : PT.cfg.nounPl);
+    const more = $("#ptMore"); if (more) more.hidden = rows.length <= PT.shown;
+    const c2 = $("#ptClear2"); if (c2) c2.addEventListener("click", (e) => { e.preventDefault(); PT.q = ""; PT.filters = []; const qi = $("#ptQ"); if (qi) qi.value = ""; ptRerender(); });
+  }
+  function ptRerender() {
+    // pills
+    $("#ptPills").innerHTML = PT.filters.map((f, i) => `<button class="pt-pill" data-i="${i}">${esc(ptPillText(f))}<span class="x" data-rm="${i}">✕</span></button>`).join("");
+    $("#ptReset").hidden = !(PT.filters.length || PT.q);
+    // header sort arrows
+    $$("#ptHead th[data-k]").forEach((th) => { const on = th.dataset.k === PT.sort.k; th.classList.toggle("sorted", on); th.setAttribute("aria-sort", on ? (PT.sort.dir < 0 ? "descending" : "ascending") : "none"); });
+    const rows = ptResults();
+    ptRenderBody(rows);
+    $$("#ptPills .pt-pill").forEach((p) => p.addEventListener("click", (e) => {
+      if (e.target.dataset.rm != null) { PT.filters.splice(+e.target.dataset.rm, 1); ptRerender(); return; }
+      ptOpenEditor(ptCol(PT.filters[+p.dataset.i].k), +p.dataset.i, p);
+    }));
+    ptSyncUrl();
   }
 
-  /* ================= PLAYERS INDEX ================= */
-  async function renderPlayersIndex() {
-    const S = await getSeason(META.current);
-    const ids = (S.leaders.pts || []).slice(0, 3).map((r) => r[0]);
-    app.innerHTML = `<div class="wrap page">
-      <div class="crumb"><a href="#/">Home</a><span class="sep">/</span><span>Players</span></div>
-      <div class="section-title"><div><span class="eyebrow">${SEARCH.length.toLocaleString()} players · 1947–${META.current}</span><h2>Players</h2></div></div>
-      <div class="mast-search" style="max-width:520px;margin-bottom:26px">
-        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-        <input id="pgSearch" type="text" placeholder="Search all ${SEARCH.length.toLocaleString()} players…" autocomplete="off" spellcheck="false" />
-        <div class="results" id="pgResults"></div>
+  // ---- filter menu / editors (a single floating panel) ----
+  function ptClosePanel() { const p = $("#ptPanel"); if (p) p.remove(); document.removeEventListener("click", ptOutside, true); }
+  function ptOutside(e) { const p = $("#ptPanel"); if (p && !p.contains(e.target) && !e.target.closest("#ptAdd,.pt-pill")) ptClosePanel(); }
+  function ptPanel(anchor, html) {
+    ptClosePanel();
+    const p = document.createElement("div"); p.id = "ptPanel"; p.className = "pt-panel"; p.innerHTML = html;
+    document.body.appendChild(p);
+    const rc = anchor.getBoundingClientRect();
+    p.style.top = (rc.bottom + window.scrollY + 6) + "px";
+    p.style.left = Math.min(rc.left + window.scrollX, window.innerWidth - p.offsetWidth - 12) + "px";
+    setTimeout(() => document.addEventListener("click", ptOutside, true), 0);
+    return p;
+  }
+  function ptOpenMenu(anchor) {
+    const items = PT.cfg.cols.filter((c) => c.type !== "text" && c.filt !== false).map((c) => `<button class="pt-mi" data-k="${c.k}">${esc(c.label)}</button>`).join("");
+    const p = ptPanel(anchor, `<div class="pt-panel-h">Filter by…</div><div class="pt-menu">${items}</div>`);
+    $$(".pt-mi", p).forEach((b) => b.addEventListener("click", () => ptOpenEditor(ptCol(b.dataset.k), -1, anchor)));
+  }
+  function ptOpenEditor(c, editIdx, anchor) {
+    const existing = editIdx >= 0 ? PT.filters[editIdx] : null;
+    let body;
+    if (c.type === "enum") {
+      const opts = ptOptions(c), sel = new Set(existing ? existing.vals : []);
+      const olabel = (o) => (c.fmtVal ? c.fmtVal(o) : "" + o);
+      const optHtml = (filter) => opts.filter((o) => !filter || ("" + olabel(o)).toLowerCase().includes(filter)).map((o) =>
+        `<label class="pt-opt"><input type="checkbox" value="${esc("" + o)}" ${sel.has(o) ? "checked" : ""}>${c.enumIcon === "team" ? teamLogo(o, "xs") + " " + esc(olabel(o)) : esc("" + olabel(o))}</label>`).join("");
+      body = `<div class="pt-panel-h">${esc(c.label)}</div>${opts.length > 8 ? `<input class="pt-search" id="ptOptSearch" placeholder="Search…" autocomplete="off">` : ""}<div class="pt-opts" id="ptOpts">${optHtml("")}</div><div class="pt-actions"><button class="pt-apply" id="ptApply">Apply</button></div>`;
+      const p = ptPanel(anchor, body);
+      const os = $("#ptOptSearch", p); if (os) os.addEventListener("input", () => { $("#ptOpts", p).innerHTML = optHtml(os.value.toLowerCase().trim()); });
+      $("#ptApply", p).addEventListener("click", () => {
+        const vals = $$("#ptOpts input:checked", p).map((i) => i.value);
+        ptCommit(editIdx, vals.length ? { k: c.k, op: "in", vals } : null); });
+      if (os) os.focus();
+    } else if (c.type === "bool") {
+      const cur = existing ? existing.vals[0] : 1;
+      body = `<div class="pt-panel-h">${esc(c.label)}</div><div class="pt-menu">
+        <button class="pt-mi" data-v="1">${esc(c.boolLabels[0])}</button><button class="pt-mi" data-v="0">${esc(c.boolLabels[1])}</button></div>`;
+      const p = ptPanel(anchor, body);
+      $$(".pt-mi", p).forEach((b) => b.addEventListener("click", () => ptCommit(editIdx, { k: c.k, op: "is", vals: [+b.dataset.v] })));
+    } else if (c.type === "date") {
+      const v0 = existing ? existing.vals[0] : "", v1 = existing ? existing.vals[1] : "";
+      body = `<div class="pt-panel-h">${esc(c.label)}</div><div class="pt-num">
+        <div class="pt-num-in"><span class="pt-and">from</span><input id="ptD0" type="date" value="${v0 && v0 !== "0000-01-01" ? v0 : ""}"></div>
+        <div class="pt-num-in"><span class="pt-and">to</span><input id="ptD1" type="date" value="${v1 && v1 !== "9999-12-31" ? v1 : ""}"></div></div>
+        <div class="pt-actions"><button class="pt-apply" id="ptApply">Apply</button></div>`;
+      const p = ptPanel(anchor, body);
+      $("#ptApply", p).addEventListener("click", () => {
+        const d0 = $("#ptD0", p).value, d1 = $("#ptD1", p).value;
+        ptCommit(editIdx, (d0 || d1) ? { k: c.k, op: "daterange", vals: [d0 || "0000-01-01", d1 || "9999-12-31"] } : null);
+      });
+    } else { // numeric
+      const op = existing ? existing.op : "gte", v0 = existing ? existing.vals[0] : "", v1 = existing && existing.vals[1] != null ? existing.vals[1] : "";
+      const disp = (x) => x === "" ? "" : (c.inMul ? +(x / c.inMul).toFixed(2) : x);
+      body = `<div class="pt-panel-h">${esc(c.label)}</div>
+        <div class="pt-num"><select id="ptOp">${["gte", "lte", "eq", "between"].map((o) => `<option value="${o}" ${o === op ? "selected" : ""}>${o === "gte" ? "at least (≥)" : o === "lte" ? "at most (≤)" : o === "eq" ? "equals (=)" : "between"}</option>`).join("")}</select>
+          <div class="pt-num-in"><input id="ptV0" type="number" step="any" value="${disp(v0)}" placeholder="0"><span class="pt-u">${c.unit || ""}</span></div>
+          <div class="pt-num-in" id="ptV1wrap" ${op === "between" ? "" : "hidden"}><span class="pt-and">and</span><input id="ptV1" type="number" step="any" value="${disp(v1)}"><span class="pt-u">${c.unit || ""}</span></div>
+          ${c.hint ? `<span class="pt-hint">${c.hint}</span>` : ""}</div>
+        <div class="pt-actions"><button class="pt-apply" id="ptApply">Apply</button></div>`;
+      const p = ptPanel(anchor, body);
+      const opSel = $("#ptOp", p); opSel.addEventListener("change", () => { $("#ptV1wrap", p).hidden = opSel.value !== "between"; });
+      const commit = () => {
+        const raw0 = parseFloat($("#ptV0", p).value); if (isNaN(raw0)) return;
+        const mul = c.inMul || 1, o = opSel.value, vals = [raw0 * mul];
+        if (o === "between") { const raw1 = parseFloat($("#ptV1", p).value); if (isNaN(raw1)) return; vals.push(raw1 * mul); }
+        ptCommit(editIdx, { k: c.k, op: o, vals }); };
+      $("#ptApply", p).addEventListener("click", commit);
+      p.addEventListener("keydown", (e) => { if (e.key === "Enter") commit(); });
+      $("#ptV0", p).focus();
+    }
+  }
+  function ptCommit(editIdx, filter) {
+    if (filter) { if (editIdx >= 0) PT.filters[editIdx] = filter; else PT.filters.push(filter); }
+    else if (editIdx >= 0) PT.filters.splice(editIdx, 1);
+    PT.shown = 80; ptClosePanel(); ptRerender();
+  }
+
+  // Build the toolbar + table into `host` for the given config + rows, and wire all interaction.
+  function ptMount(host, cfg, data) {
+    PT = { cfg, data, q: "", filters: [], sort: { ...cfg.defaultSort }, shown: 80, io: null, basePath: location.hash.replace(/^#\/?/, "").split("?")[0] };
+    // restore a shared/bookmarked filter state (keys that don't exist in this table are dropped)
+    let urlCols = null;
+    if (PT_URLSTATE) {
+      if (PT_URLSTATE.q) PT.q = PT_URLSTATE.q;
+      if (Array.isArray(PT_URLSTATE.f)) PT.filters = PT_URLSTATE.f.filter((f) => f && ptCol(f.k));
+      if (PT_URLSTATE.s && ptCol(PT_URLSTATE.s.k)) PT.sort = PT_URLSTATE.s;
+      if (Array.isArray(PT_URLSTATE.c)) urlCols = PT_URLSTATE.c;
+      PT_URLSTATE = null;
+    }
+    // visible columns: default → per-table saved preference → shared-URL override (all validated)
+    PT.visCols = ptDefaultCols(cfg);
+    const saved = ptLoadCols(cfg); if (saved) { const v = saved.filter((k) => ptCol(k)); if (v.length) PT.visCols = v; }
+    if (urlCols) { const v = urlCols.filter((k) => ptCol(k)); if (v.length) PT.visCols = v; }
+    host.innerHTML = `<div class="pt-bar">
+        <div class="pt-search-wrap"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          <input id="ptQ" type="text" placeholder="${esc(cfg.searchPlaceholder || "Search…")}" autocomplete="off" spellcheck="false"></div>
+        <button class="pt-add" id="ptAdd"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Filter</button>
+        <button class="pt-add pt-cols" id="ptCols" title="Show or hide columns"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="1.5"/><path d="M9.5 4v16M15 4v16"/></svg>Columns</button>
+        <div class="pt-pills" id="ptPills"></div>
+        <button class="pt-reset" id="ptReset" hidden>Reset</button>
+        <span class="pt-count" id="ptCount"></span>
       </div>
-      <div class="section-title"><h2>${seasonLabel(META.current)} scoring leaders</h2></div>
-      <div class="pcards" id="pgCards"></div>`;
-    $("#pgCards").innerHTML = await playerCards((S.leaders.pts || []).slice(0, 12).map((r) => r[0]));
-    wireSearch($("#pgSearch"), $("#pgResults"));
+      <div class="card pt-card"><div class="tbl-wrap"><table class="ref pt-table" style="min-width:${cfg.minWidth || 920}px">
+        <thead id="ptHead"><tr></tr></thead><tbody id="ptBody"></tbody></table></div></div>
+      <div class="pt-morewrap"><button class="pt-more" id="ptMore" hidden>Show more</button></div>`;
+    ptRenderHead();
+    const q = $("#ptQ"); if (PT.q) q.value = PT.q;
+    let qt; q.addEventListener("input", () => { clearTimeout(qt); qt = setTimeout(() => { PT.q = q.value.trim(); PT.shown = 80; ptRerender(); }, 140); });
+    $("#ptAdd").addEventListener("click", (e) => { e.stopPropagation(); ptOpenMenu($("#ptAdd")); });
+    $("#ptCols").addEventListener("click", (e) => { e.stopPropagation(); ptOpenCols($("#ptCols")); });
+    $("#ptReset").addEventListener("click", () => { PT.q = ""; PT.filters = []; q.value = ""; ptRerender(); });
+    $("#ptMore").addEventListener("click", () => { PT.shown += 120; ptRenderBody(ptResults()); });
+    PT.io = new IntersectionObserver((es) => { if (es.some((x) => x.isIntersecting)) { const rows = ptResults(); if (rows.length > PT.shown) { PT.shown += 120; ptRenderBody(rows); } } }, { rootMargin: "600px 0px" });
+    PT.io.observe($("#ptMore"));
+    ptRerender();
+  }
+
+  // Column show/hide panel — toggles which fields appear, persists per table, reflects in the URL.
+  function ptOpenCols(anchor) {
+    const cfg = PT.cfg;
+    const row = (c) => `<label class="pt-opt"><input type="checkbox" value="${c.k}" ${PT.visCols.includes(c.k) ? "checked" : ""}>${esc(c.label)}</label>`;
+    const body = `<div class="pt-panel-h">Show columns</div><div class="pt-opts" id="ptColOpts">${cfg.cols.map(row).join("")}</div>
+      <div class="pt-actions pt-actions-row"><button class="pt-mini-link" id="ptColReset" type="button">Reset to default</button><button class="pt-apply pt-apply-sm" id="ptColApply">Done</button></div>`;
+    const p = ptPanel(anchor, body);
+    const apply = () => {
+      const picked = $$("#ptColOpts input:checked", p).map((i) => i.value);
+      PT.visCols = picked.length ? cfg.cols.filter((c) => picked.includes(c.k)).map((c) => c.k) : ptDefaultCols(cfg);
+      ptSaveCols(cfg, PT.visCols); ptClosePanel(); ptRenderHead(); ptRerender();
+    };
+    $("#ptColApply", p).addEventListener("click", apply);
+    $("#ptColReset", p).addEventListener("click", () => { PT.visCols = ptDefaultCols(cfg); ptSaveCols(cfg, PT.visCols); ptClosePanel(); ptRenderHead(); ptRerender(); });
+  }
+
+  const PLAYERS_CFG = {
+    key: "players", noun: "player", nounPl: "players", tiebreak: "n", minWidth: 920, defaultSort: { k: "pts", dir: -1 },
+    searchPlaceholder: "Search name or team…",
+    search: (r, q) => (r.n || "").toLowerCase().includes(q) || (r.t || "").toLowerCase().includes(q) || (r.col || "").toLowerCase().includes(q),
+    link: (r) => `#/player/${r.i}`,
+    cols: [
+      { k: "n", label: "Player", type: "text", col: true, cls: "l grow", cell: (r) => `<span class="who">${headshot(r.i, r.n, r.t, "xs")}<a href="#/player/${r.i}">${esc(r.n)}</a></span>` },
+      { k: "pg", label: "Position", type: "enum", col: true, th: "Pos", cls: "l", opts: () => ["Guard", "Forward", "Center"], cell: (r) => r.p ? esc(r.p) : "—" },
+      { k: "t", label: "Team", type: "enum", col: true, th: "Team", cls: "l", enumIcon: "team", fmtVal: (v) => tName(v) || v, cell: (r) => r.t ? teamTag(r.t, true) : "—" },
+      { k: "yr", label: "Seasons", type: "num", col: true, th: "Yrs", cell: (r) => r.yr != null ? `<span title="${r.f}–${r.e}">${r.yr}</span>` : "—" },
+      { k: "f", label: "Debut year", type: "num" },
+      { k: "e", label: "Final year", type: "num" },
+      { k: "act", label: "Status", type: "bool", boolLabels: ["Active", "Retired"] },
+      { k: "hof", label: "Hall of Fame", type: "bool", boolLabels: ["Yes", "No"] },
+      { k: "col", label: "College", type: "enum" },
+      { k: "ht", label: "Height", type: "num", unit: '"', hint: "inches" },
+      { k: "g", label: "Games", type: "num", col: true, th: "G" },
+      { k: "pts", label: "Points / g", type: "num", col: true, th: "PPG", hi: true },
+      { k: "trb", label: "Rebounds / g", type: "num", col: true, th: "RPG" },
+      { k: "ast", label: "Assists / g", type: "num", col: true, th: "APG" },
+      { k: "stl", label: "Steals / g", type: "num", col: true, th: "SPG" },
+      { k: "blk", label: "Blocks / g", type: "num", col: true, th: "BPG" },
+      { k: "fg", label: "FG%", type: "pct", col: true, th: "FG%", inMul: 0.01, unit: "%" },
+      { k: "tp", label: "3P%", type: "pct", col: true, th: "3P%", inMul: 0.01, unit: "%" },
+      { k: "ft", label: "FT%", type: "pct", col: true, th: "FT%", inMul: 0.01, unit: "%" },
+      { k: "sal", label: "Salary", type: "money", col: true, th: "Salary", inMul: 1e6, unit: "$M" },
+    ],
+  };
+
+  const GAMES_CFG = {
+    key: "games", noun: "game", nounPl: "games", tiebreak: "id", minWidth: 720, defaultSort: { k: "date", dir: -1 },
+    searchPlaceholder: "Search team…",
+    search: (g, q) => (g.a + " " + g.h).toLowerCase().includes(q) || (g.label || "").toLowerCase().includes(q),
+    link: (g) => `#/game/${g.id}`,
+    cols: [
+      { k: "date", label: "Date", type: "date", col: true, th: "Date", cls: "l", cell: (g) => fmtDate(g.date) },
+      { k: "matchup", label: "Matchup", type: "text", col: true, th: "Matchup", cls: "l grow", filt: false, cell: (g) => `<span class="gmatch">${teamLogo(g.a, "xs")}<b>${g.a}</b><span class="at">@</span>${teamLogo(g.h, "xs")}<b>${g.h}</b></span>` },
+      { k: "score", label: "Score", type: "text", col: true, th: "Score", cls: "l", filt: false, cell: (g) => { const aw = (g.as || 0) > (g.hs || 0); return `<span class="gsc"><span class="${aw ? "gw" : ""}">${g.as ?? "—"}</span><span class="gsc-d">–</span><span class="${!aw ? "gw" : ""}">${g.hs ?? "—"}</span></span>`; } },
+      { k: "margin", label: "Margin", type: "num", col: true, th: "Margin", getv: (g) => Math.abs((g.hs || 0) - (g.as || 0)) },
+      { k: "type", label: "Round / type", type: "enum", col: true, th: "Type", cls: "l", getv: (g) => g.type, cell: (g) => gameTypeBadge(g.type, g.label) },
+      { k: "total", label: "Total points", type: "num", getv: (g) => (g.hs || 0) + (g.as || 0) },
+      { k: "team", label: "Team (either)", type: "enum", enumIcon: "team", fmtVal: (v) => tName(v) || v, opts: () => { const s = new Set(); PT.data.forEach((g) => { s.add(g.a); s.add(g.h); }); return [...s].sort((a, b) => (tName(a) || a).localeCompare(tName(b) || b)); }, match: (g, f) => f.vals.includes(g.h) || f.vals.includes(g.a) },
+      { k: "h", label: "Home team", type: "enum", enumIcon: "team", fmtVal: (v) => tName(v) || v, getv: (g) => g.h },
+      { k: "a", label: "Away team", type: "enum", enumIcon: "team", fmtVal: (v) => tName(v) || v, getv: (g) => g.a },
+    ],
+  };
+
+  // One row per current franchise; each aggregates its full lineage (relocations, renames,
+  // and absorbed ABA teams). Titles are NBA championships only.
+  const TEAMS_CFG = {
+    key: "teams", noun: "franchise", nounPl: "franchises", tiebreak: "i", minWidth: 1000, defaultSort: { k: "pct", dir: -1 },
+    searchPlaceholder: "Search franchise…",
+    search: (r, q) => (r.n || "").toLowerCase().includes(q) || (r.i || "").toLowerCase().includes(q),
+    link: (r) => `#/team/${r.i}`,
+    cols: [
+      { k: "team", label: "Franchise", type: "text", col: true, cls: "l grow", filt: false, cell: (r) => `<span class="who">${teamLogo(r.i, "xs")}<a href="#/team/${r.i}">${esc(r.n || r.i)}</a></span>` },
+      { k: "conf", label: "Conference", type: "enum", col: true, th: "Conf", cls: "l", opts: () => ["East", "West"], cell: (r) => r.conf ? esc(r.conf) : "—" },
+      { k: "found", label: "Founded", type: "num", col: true, th: "Since", cls: "l", cell: (r) => `<span class="season">${seasonLabel(r.found)}</span>` },
+      { k: "seasons", label: "Seasons played", type: "num", col: true, th: "Seasons" },
+      { k: "titles", label: "NBA titles", type: "num", col: true, th: "Titles", hi: true, cell: (r) => r.titles ? `<span class="titles-cell">${r.titles}</span>` : `<span class="muted">0</span>` },
+      { k: "lastTitle", label: "Last title", type: "num", th: "Last title", cls: "l", cell: (r) => r.lastTitle ? seasonLabel(r.lastTitle) : "—" },
+      { k: "w", label: "All-time wins", type: "num", col: true, th: "W" },
+      { k: "l", label: "All-time losses", type: "num", col: true, th: "L" },
+      { k: "pct", label: "All-time win %", type: "pct", col: true, th: "Win%", inMul: 0.01, unit: "%", cell: (r) => winpct(r.w, r.l) },
+      { k: "po", label: "Playoff trips", type: "num", col: true, th: "Playoffs", hint: "seasons reaching the postseason" },
+      { k: "bestW", label: "Best season wins", type: "num", col: true, th: "Best", cell: (r) => r.bestW < 0 ? "—" : `<span title="${seasonLabel(r.bestY)} · best regular season">${r.bestW}–${r.bestL}</span>` },
+    ],
+  };
+
+  // Salary book for one season (rows are objects mapped from the compact [pid,name,abbr,sal] tuples).
+  const SALARIES_CFG = {
+    key: "salaries", noun: "player", nounPl: "players", tiebreak: "name", minWidth: 480, defaultSort: { k: "sal", dir: -1 },
+    searchPlaceholder: "Search player or team…",
+    search: (r, q) => (r.name || "").toLowerCase().includes(q) || (tName(r.t) || r.t || "").toLowerCase().includes(q),
+    link: (r) => r.pid ? `#/player/${r.pid}` : "",
+    cols: [
+      { k: "name", label: "Player", type: "text", col: true, cls: "l grow", cell: (r) => `<span class="who">${headshot(r.pid, r.name, r.t, "xs")}${r.pid ? `<a href="#/player/${r.pid}">${esc(r.name)}</a>` : `<span class="nm">${esc(r.name)}</span>`}</span>` },
+      { k: "t", label: "Team", type: "enum", col: true, th: "Team", cls: "l", enumIcon: "team", fmtVal: (v) => tName(v) || v, cell: (r) => r.t ? teamTag(r.t, true) : "—" },
+      { k: "sal", label: "Salary", type: "money", col: true, th: "Salary", hi: true, inMul: 1e6, unit: "$M", cell: (r) => moneyFull(r.sal) },
+    ],
+  };
+
+  async function renderTeamsIndex() {
+    let data; try { data = await getTeamsTable(); } catch { return notFound("teams"); }
+    setSEO("Teams — NBA Franchises, All-Time", "Sort and filter all 30 NBA franchises by all-time win %, championships, playoff trips and more — every relocation and ABA team absorbed into the modern club.");
+    app.innerHTML = `<div class="wrap page pt-page">
+      <div class="crumb"><a href="#/">Home</a><span class="sep">/</span><span>Teams</span></div>
+      <div class="section-title"><div><span class="eyebrow">${data.count} franchises · all-time, full lineage</span><h2>Teams</h2></div><a class="link" href="#/standings">Current standings →</a></div>
+      <div id="ptHost"></div></div>`;
+    ptMount($("#ptHost"), TEAMS_CFG, data.rows);
+  }
+
+  // Per-season variant of the Players table (one row per player for the chosen season).
+  const PLAYERS_SEASON_CFG = {
+    key: "players-season", noun: "player", nounPl: "players", tiebreak: "n", minWidth: 980, defaultSort: { k: "pts", dir: -1 },
+    searchPlaceholder: "Search name or team…",
+    search: (r, q) => (r.n || "").toLowerCase().includes(q) || (r.t || "").toLowerCase().includes(q),
+    link: (r) => `#/player/${r.i}`,
+    cols: [
+      { k: "n", label: "Player", type: "text", col: true, cls: "l grow", cell: (r) => `<span class="who">${headshot(r.i, r.n, r.t, "xs")}<a href="#/player/${r.i}">${esc(r.n)}</a></span>` },
+      { k: "pg", label: "Position", type: "enum", col: true, th: "Pos", cls: "l", opts: () => ["Guard", "Forward", "Center"], cell: (r) => r.p ? esc(r.p) : "—" },
+      { k: "t", label: "Team", type: "enum", col: true, th: "Team", cls: "l", enumIcon: "team", fmtVal: (v) => tName(v) || v, cell: (r) => r.t ? teamTag(r.t, true) : "—" },
+      { k: "age", label: "Age", type: "num", col: true, th: "Age" },
+      { k: "g", label: "Games", type: "num", col: true, th: "G" },
+      { k: "mpg", label: "Minutes / g", type: "num", col: true, th: "MPG" },
+      { k: "pts", label: "Points / g", type: "num", col: true, th: "PPG", hi: true },
+      { k: "trb", label: "Rebounds / g", type: "num", col: true, th: "RPG" },
+      { k: "ast", label: "Assists / g", type: "num", col: true, th: "APG" },
+      { k: "stl", label: "Steals / g", type: "num", th: "SPG" },
+      { k: "blk", label: "Blocks / g", type: "num", th: "BPG" },
+      { k: "fg", label: "FG%", type: "pct", col: true, th: "FG%", inMul: 0.01, unit: "%" },
+      { k: "tp", label: "3P%", type: "pct", col: true, th: "3P%", inMul: 0.01, unit: "%" },
+      { k: "ft", label: "FT%", type: "pct", th: "FT%", inMul: 0.01, unit: "%" },
+      { k: "per", label: "PER", type: "num", col: true, th: "PER", hint: "player efficiency rating" },
+      { k: "ts", label: "TS%", type: "pct", th: "TS%", inMul: 0.01, unit: "%" },
+      { k: "sal", label: "Salary", type: "money", col: true, th: "Salary", inMul: 1e6, unit: "$M" },
+    ],
+  };
+
+  async function renderPlayersIndex(basis) {
+    const yr = /^\d{4}$/.test(basis || "") ? +basis : null;   // #/players/2016 → that season; else career
+    let data;
+    try { data = yr ? await getPlayersSeason(yr) : await getPlayersTable(); }
+    catch { return yr ? renderPlayersIndex() : notFound("players"); }
+    const label = yr ? `${seasonLabel(yr)} season · per-game` : `1947–${META.current} · career per-game`;
+    setSEO(yr ? `${seasonLabel(yr)} NBA Players — Filterable Stats` : "Players — Filterable NBA Database",
+      yr ? `Filter and sort every NBA player from the ${seasonLabel(yr)} season by team, position, per-game stats and salary.`
+        : "Filter and sort every NBA player, 1947 to today, by team, position, era, career stats, salary and more.");
+    const years = [];
+    for (let y = META.current; y >= 1950; y--) years.push(y);
+    app.innerHTML = `<div class="wrap page pt-page">
+      <div class="crumb"><a href="#/">Home</a><span class="sep">/</span><span>Players</span></div>
+      <div class="section-title"><div><span class="eyebrow">${data.count.toLocaleString()} players · ${label}</span><h2>Players</h2></div>
+        <label class="season-select"><span>Stats</span><select id="plBasis">
+          <option value="career" ${!yr ? "selected" : ""}>Career averages</option>
+          ${years.map((y) => `<option value="${y}" ${y === yr ? "selected" : ""}>${seasonLabel(y)} season</option>`).join("")}
+        </select></label></div>
+      <div id="ptHost"></div></div>`;
+    ptMount($("#ptHost"), yr ? PLAYERS_SEASON_CFG : PLAYERS_CFG, data.rows);
+    $("#plBasis").addEventListener("change", (e) => { location.hash = e.target.value === "career" ? "#/players" : `#/players/${e.target.value}`; });
   }
 
   /* ================= AWARDS ================= */
@@ -2314,7 +2851,7 @@
   }
 
   /* ================= ROUTER ================= */
-  const NAV = { "": "home", players: "players", player: "players", pseason: "players", teams: "teams", team: "teams", leaders: "leaders", standings: "standings", seasons: "seasons", season: "seasons", awards: "awards", draft: "seasons", compare: "players", news: "news", article: "news", salaries: "salaries", games: "games", game: "games", play: "play", betting: "betting", settings: "settings", terms: "", privacy: "" };
+  const NAV = { "": "home", players: "players", player: "players", pseason: "players", teams: "teams", team: "teams", leaders: "leaders", standings: "standings", seasons: "seasons", season: "seasons", bracket: "seasons", awards: "awards", draft: "seasons", compare: "players", news: "news", article: "news", salaries: "salaries", games: "games", game: "games", play: "play", betting: "betting", settings: "settings", sources: "", terms: "", privacy: "" };
   const SECTION_SEO = {
     "": [null, "Look up any player or team in NBA history — stats, contracts, standings, leaders and awards from 1947 to today."],
     players: ["All Players", "Browse every player in NBA history — career stats, contracts and accolades for 5,000+ players."],
@@ -2329,7 +2866,12 @@
     news: ["NBA News", "Latest NBA headlines."],
   };
   async function route() {
-    const h = location.hash.replace(/^#\/?/, ""), parts = h.split("/"), seg = parts[0], arg = parts[1];
+    const raw = location.hash.replace(/^#\/?/, ""), qi = raw.indexOf("?");
+    const h = qi < 0 ? raw : raw.slice(0, qi), parts = h.split("/"), seg = parts[0], arg = parts[1];
+    // filter-table state travels in a ?v= query param so filtered views are shareable/bookmarkable
+    PT_URLSTATE = null;
+    if (qi >= 0) { const m = /(?:^|&)v=([^&]+)/.exec(raw.slice(qi + 1)); if (m) { try { PT_URLSTATE = JSON.parse(decodeURIComponent(m[1])); } catch (e) {} } }
+    if (seg === "betting" && !SHOW_BETTING) { location.replace("#/"); return; }
     hideTT(); closeMenu(); closeMore();
     app.innerHTML = skeleton(seg);
     setSEO(SECTION_SEO[seg] ? SECTION_SEO[seg][0] : null, SECTION_SEO[seg] ? SECTION_SEO[seg][1] : "A modern NBA reference — every player and team, all-time leaders, standings, awards, salaries and history from 1947 to today.");
@@ -2337,12 +2879,13 @@
       if (seg === "" ) await renderHome();
       else if (seg === "player") await renderPlayer(arg);
       else if (seg === "pseason") await renderPlayerSeason(arg, parts[2]);
-      else if (seg === "players") await renderPlayersIndex();
+      else if (seg === "players") await renderPlayersIndex(arg);
       else if (seg === "team") await renderTeam(arg, parts[2]);
       else if (seg === "teams") await renderTeamsIndex();
       else if (seg === "leaders") await renderLeaders(arg);
       else if (seg === "standings") await renderStandings(arg);
       else if (seg === "season") await renderSeason(arg);
+      else if (seg === "bracket") await renderBracket(arg);
       else if (seg === "seasons") renderSeasons();
       else if (seg === "awards") await renderAwards(arg);
       else if (seg === "draft") await renderDraft(arg);
@@ -2353,6 +2896,7 @@
       else if (seg === "settings") { await renderHome(); openSettings(); }
       else if (seg === "terms") renderTerms();
       else if (seg === "privacy") renderPrivacy();
+      else if (seg === "sources") await renderSources();
       else if (seg === "article") await renderArticle(arg);
       else if (seg === "games") await (arg === "player" ? renderPlayerGames(parts[2]) : renderGames(arg));
       else if (seg === "game") await renderGame(arg);
@@ -2362,6 +2906,16 @@
       console.error(err);
       app.innerHTML = `<div class="wrap page"><h2 style="font-size:26px">Something went wrong loading this view.</h2><p class="muted" style="margin-top:8px">${esc(err.message || err)}</p><p style="margin-top:12px"><a href="#/" style="color:var(--accent-deep)">← Home</a></p></div>`;
     }
+    // a11y: every view needs exactly one <h1>. Home and the player/team heroes already have
+    // one; for the rest, add a visually-hidden h1 from the page title so the document outline
+    // is well-formed for screen readers. (The prerendered SEO pages carry a visible h1.)
+    if (!app.querySelector("h1")) {
+      const t = (document.title || "Hardwood").replace(/\s*[—-]\s*Hardwood.*$/, "").trim() || "Hardwood";
+      app.insertAdjacentHTML("afterbegin", `<h1 class="vh">${esc(t)}</h1>`);
+    }
+    // safety net for the mono-fallback: reveal images already loaded from cache (whose onload
+    // may have fired before the handler attached) and drop any that already failed.
+    app.querySelectorAll(".ava img").forEach((im) => { if (im.complete) { if (im.naturalWidth) im.classList.add("ldd"); else im.remove(); } });
     $$(".mainnav a, .mobile-menu a").forEach((a) => a.classList.toggle("on", a.dataset.route === (NAV[seg] || "home")));
     const mb = $("#moreBtn"); if (mb) mb.classList.toggle("on", !!$(".navmore-menu a.on"));
     window.scrollTo(0, 0);
@@ -2446,7 +3000,9 @@
     totals.forEach((r) => tbody.appendChild(r));
   }
   document.addEventListener("click", (e) => {
-    const th = e.target.closest("table.ref thead th");
+    // .pt-table (the Players filter grid) manages its own full-dataset sort — the generic
+    // DOM-row sorter would only reorder the visible page and fight it, so skip it there.
+    const th = e.target.closest("table.ref:not(.pt-table) thead th");
     if (th && th.closest("table").tBodies[0] && th.closest("table").tBodies[0].rows.length > 2) sortTableByHeader(th);
   });
 

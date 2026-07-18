@@ -30,6 +30,9 @@ ALL = args == ["all"]
 SEASONS = None if ALL else (set(int(x) for x in args) or {json.load(open(os.path.join(DATA, "meta.json")))["current"]})
 PG_LIMIT = 100
 
+from glob import glob as _glob
+from lineage import to_modern
+
 meta = json.load(open(os.path.join(DATA, "meta.json")))
 search = json.load(open(os.path.join(DATA, "search.json")))
 PID = {str(e[6]): e[0] for e in search if e[6]}
@@ -40,6 +43,36 @@ for ab, t in meta["teams"].items():
 def team_abbr(city, name): return NAME_ABBR.get(f"{city} {name}".lower())
 def season_of(date):
     y, m = int(date[:4]), int(date[5:7]); return y + 1 if m >= 10 else y
+
+# --- franchise-aware team resolution -------------------------------------------------
+# The NBA teamId is franchise-stable across relocations/renames (Seattle SuperSonics and
+# Oklahoma City Thunder share id 1610612760), so historical games — previously dropped
+# because their era name didn't match a current team — resolve via teamId to the modern
+# franchise, then to the era-accurate abbreviation used that season (so the games index
+# stays consistent with the season standings: SEA for 1995, OKC for 2020).
+TO_MODERN = to_modern(set(meta["teams"]))
+# teamId -> modern abbr, learned from every row whose current-era name maps to one of the 30
+TID2MODERN = {}
+with open(os.path.join(RAW, "Games.csv"), newline="", encoding="utf-8") as _f:
+    for _r in csv.DictReader(_f):
+        for _pre in ("home", "away"):
+            _ab = team_abbr(_r[_pre + "teamCity"], _r[_pre + "teamName"])
+            if _ab:
+                TID2MODERN[_r[_pre + "teamId"]] = _ab
+# (modern abbr, season) -> era abbr used that season, from the season standings
+ERA = {}
+for _fp in _glob(os.path.join(DATA, "season", "*.json")):
+    _d = json.load(open(_fp))
+    _yr = _d.get("season") or int(os.path.basename(_fp)[:-5])
+    for _t in _d.get("standings", []):
+        _mod = TO_MODERN.get(_t["abbr"])
+        if _mod:
+            ERA[(_mod, _yr)] = _t["abbr"]
+def resolve_abbr(city, name, tid, season):
+    mod = TID2MODERN.get(tid) or team_abbr(city, name)
+    if not mod:
+        return None
+    return ERA.get((mod, season), mod)   # era abbr if the franchise is in that season's standings
 def num(v, cast=float):
     try: return cast(v)
     except (ValueError, TypeError): return None
@@ -59,7 +92,8 @@ with open(os.path.join(RAW, "Games.csv"), newline="", encoding="utf-8") as f:
     for r in csv.DictReader(f):
         s = season_of(r["gameDate"])
         if not keep(s): continue
-        ha, aa = team_abbr(r["hometeamCity"], r["hometeamName"]), team_abbr(r["awayteamCity"], r["awayteamName"])
+        ha = resolve_abbr(r["hometeamCity"], r["hometeamName"], r["hometeamId"], s)
+        aa = resolve_abbr(r["awayteamCity"], r["awayteamName"], r["awayteamId"], s)
         if not ha or not aa: continue
         gid = r["gameId"]
         hs, as_ = i(r["homeScore"]), i(r["awayScore"])
@@ -95,11 +129,18 @@ def flush(gid, box):
     global written
     g = games.get(gid)
     if not g: return
-    for side in ("home", "away"):
-        box[side].sort(key=lambda x: -(x["pts"] or 0))
+    path = os.path.join(DATA, "game", f"{gid}.json")
+    if gid in flushed:                 # non-contiguous rows for this game: merge, don't overwrite
+        try:
+            prev = json.load(open(path)).get("box") or {"home": [], "away": []}
+            box = {s: (prev.get(s) or []) + box.get(s, []) for s in ("home", "away")}
+        except Exception:
+            pass
+    box = {s: sorted(box.get(s, []), key=lambda x: -(x["pts"] or 0)) for s in ("home", "away")}
     g["box"] = box
-    json.dump(g, open(os.path.join(DATA, "game", f"{gid}.json"), "w"), separators=(",", ":"), ensure_ascii=False)
-    flushed.add(gid); written += 1
+    json.dump(g, open(path, "w"), separators=(",", ":"), ensure_ascii=False)
+    if gid not in flushed:
+        flushed.add(gid); written += 1
     if written % 5000 == 0: print(f"  ...{written} game files")
 
 cur_gid, cur_box = None, {"home": [], "away": []}
