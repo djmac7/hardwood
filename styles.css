@@ -1313,6 +1313,12 @@ table.ref tr.benchsep td{border-top:1px solid var(--line-strong)}
 .pt-empty span{font-size:13px;max-width:280px}
 .pt-empty-clear{margin-top:6px;height:34px;padding:0 16px;border:1px solid var(--line-strong);border-radius:8px;background:var(--panel);color:var(--ink-2);font-size:13px;font-weight:500;cursor:pointer}
 .pt-empty-clear:hover{border-color:var(--accent);color:var(--ink)}
+/* fixed sticky-header clone that tracks a long table's columns as you scroll (see ptStickySetup) */
+.pt-stick{position:fixed;top:60px;z-index:55;overflow:hidden;pointer-events:none;background:var(--panel);border-bottom:1px solid var(--line-strong);box-shadow:0 10px 16px -12px rgba(0,0,0,.4)}
+.pt-stick[hidden]{display:none}
+.pt-stick-scroll{overflow:hidden}
+.pt-stick table{margin:0}
+.pt-stick thead th{background:var(--panel);padding-top:11px;padding-bottom:11px}
 .pt-morewrap{display:flex;justify-content:center;margin-top:16px;min-height:1px}
 .pt-more{height:36px;padding:0 18px;border:1px solid var(--line-strong);border-radius:9px;background:var(--panel);color:var(--ink-2);font-size:13.5px;font-weight:500;cursor:pointer}
 .pt-more:hover{color:var(--ink);border-color:var(--accent)}

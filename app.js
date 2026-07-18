@@ -2297,6 +2297,52 @@
     tr.innerHTML = ptHeadHtml();
     const sortBy = (k) => { PT.sort = { k, dir: PT.sort.k === k ? -PT.sort.dir : (ptCol(k).type === "text" ? 1 : -1) }; PT.shown = 80; ptRerender(); };
     $$("#ptHead th[data-k]").forEach((th) => { th.addEventListener("click", () => sortBy(th.dataset.k)); th.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); sortBy(th.dataset.k); } }); });
+    ptStickyRefresh();
+  }
+  // --- sticky header: overflow-x:auto blocks CSS position:sticky, so mirror the header in a
+  //     fixed bar that appears when the real one scrolls under the top nav — aligned to the
+  //     table and synced to its horizontal scroll. Desktop only (mobile leans on h-scroll). ---
+  let PT_STICK = null;
+  function ptStickyTeardown() {
+    if (!PT_STICK) return;
+    removeEventListener("scroll", PT_STICK.onScroll); removeEventListener("resize", PT_STICK.onResize);
+    PT_STICK.wrap.removeEventListener("scroll", PT_STICK.onHScroll); PT_STICK.clone.remove(); PT_STICK = null;
+  }
+  function ptStickyRefresh() {
+    if (!PT_STICK) return; const src = $("#ptHead");
+    if (src) { PT_STICK.clone.querySelector("thead").innerHTML = src.innerHTML; PT_STICK.measured = false; }
+  }
+  function ptStickySetup() {
+    ptStickyTeardown();
+    if (matchMedia("(max-width:700px)").matches) return;
+    const wrap = $("#ptHost .tbl-wrap"), table = $("#ptHost table.pt-table"), realHead = $("#ptHead");
+    if (!wrap || !table || !realHead) return;
+    const clone = document.createElement("div");
+    clone.className = "pt-stick"; clone.hidden = true; clone.setAttribute("aria-hidden", "true");
+    clone.innerHTML = `<div class="pt-stick-scroll"><table class="ref pt-table"><thead>${realHead.innerHTML}</thead></table></div>`;
+    document.body.appendChild(clone);
+    const inner = clone.firstElementChild, cloneTable = clone.querySelector("table");
+    const TOP = 60, st = { clone, wrap, measured: false };
+    const measure = () => {
+      cloneTable.style.width = table.offsetWidth + "px";
+      const real = realHead.querySelectorAll("th"), cl = cloneTable.querySelectorAll("th");
+      real.forEach((th, i) => { if (cl[i]) cl[i].style.width = th.getBoundingClientRect().width + "px"; });
+      st.measured = true;
+    };
+    const position = () => {
+      const tr = table.getBoundingClientRect();
+      if (!(tr.top < TOP && tr.bottom > TOP + 44)) { if (!clone.hidden) clone.hidden = true; return; }
+      if (clone.hidden || !st.measured) { clone.hidden = false; measure(); }
+      const wr = wrap.getBoundingClientRect();
+      clone.style.left = wr.left + "px"; clone.style.width = wr.width + "px"; inner.scrollLeft = wrap.scrollLeft;
+    };
+    st.onScroll = () => requestAnimationFrame(position);
+    st.onResize = () => { st.measured = false; position(); };
+    st.onHScroll = () => { inner.scrollLeft = wrap.scrollLeft; };
+    addEventListener("scroll", st.onScroll, { passive: true });
+    addEventListener("resize", st.onResize);
+    wrap.addEventListener("scroll", st.onHScroll, { passive: true });
+    PT_STICK = st; position();
   }
   function ptRenderBody(rows) {
     const cols = ptShownCols();
@@ -2496,6 +2542,7 @@
     PT.io = new IntersectionObserver((es) => { if (es.some((x) => x.isIntersecting)) { const rows = ptResults(); if (rows.length > PT.shown) { PT.shown += 120; ptRenderBody(rows); } } }, { rootMargin: "600px 0px" });
     PT.io.observe($("#ptMore"));
     ptRerender();
+    ptStickySetup();
   }
 
   // Column show/hide panel — toggles which fields appear, persists per table, reflects in the URL.
@@ -2973,7 +3020,7 @@
     PT_URLSTATE = null;
     if (qi >= 0) { const m = /(?:^|&)v=([^&]+)/.exec(raw.slice(qi + 1)); if (m) { try { PT_URLSTATE = JSON.parse(decodeURIComponent(m[1])); } catch (e) {} } }
     if (seg === "betting" && !SHOW_BETTING) { location.replace("#/"); return; }
-    hideTT(); closeMenu(); closeMore();
+    hideTT(); closeMenu(); closeMore(); ptStickyTeardown();
     app.innerHTML = skeleton(seg);
     setSEO(SECTION_SEO[seg] ? SECTION_SEO[seg][0] : null, SECTION_SEO[seg] ? SECTION_SEO[seg][1] : "A modern NBA reference — every player and team, all-time leaders, standings, awards, salaries and history from 1947 to today.");
     try {
