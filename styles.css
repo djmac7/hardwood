@@ -274,7 +274,11 @@ table.ref tbody tr.clickable:hover td:first-child,table.ref tbody tr.clickable:f
 .rank .val{font-family:var(--mono);font-weight:600;font-size:15px;font-variant-numeric:tabular-nums}
 .rank li.top .rk{color:var(--accent);font-weight:600}
 .rank .val .mini{display:inline-block;width:54px;height:6px;border-radius:4px;background:var(--bg-sunk);margin-right:9px;vertical-align:middle;overflow:hidden}
-.rank .val .mini i{display:block;height:100%;background:linear-gradient(90deg,var(--accent-deep),var(--accent));border-radius:4px}
+.rank .val .mini i{display:block;height:100%;background:linear-gradient(90deg,var(--accent-deep),var(--accent));border-radius:4px;transform-origin:left;animation:bar-grow .62s cubic-bezier(.22,1,.36,1) both}
+/* one magnitude-bar language: a subtle deep→accent gradient fill on a recessed rail, that
+   grows in on load so the eye is drawn to the data */
+@keyframes bar-grow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@media (prefers-reduced-motion:reduce){.rank .val .mini i,.barpct i{animation:none}}
 /* faint full-row magnitude bar — keeps the visual comparison without stealing name width */
 .rank-bar li{position:relative;z-index:0}
 .rank-bar li::before{content:"";position:absolute;left:-6px;right:-6px;top:3px;bottom:3px;border-radius:8px;z-index:-1;
@@ -896,7 +900,7 @@ table.ref td.neg{color:var(--crit)}
 
 /* inline bar for % columns in tables (payroll share etc.) */
 .barpct{display:inline-block;width:52px;height:6px;border-radius:4px;background:var(--bg-sunk);margin-right:10px;vertical-align:middle;overflow:hidden}
-.barpct i{display:block;height:100%;min-width:3px;background:var(--accent);border-radius:4px}   /* min-width so tiny shares still read as a bar, not an empty gap */
+.barpct i{display:block;height:100%;min-width:3px;background:linear-gradient(90deg,var(--accent-deep),var(--accent));border-radius:4px;transform-origin:left;animation:bar-grow .62s cubic-bezier(.22,1,.36,1) both}   /* min-width so tiny shares still read as a bar, not an empty gap */
 
 /* accolade chips with hover-year detail */
 .chip.has-detail{cursor:help;border-bottom-style:solid}
