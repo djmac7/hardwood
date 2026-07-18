@@ -28,7 +28,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Drop non-site files
-        run: rm -rf .git .github build scratchpad
+        run: rm -rf .git .github build scratchpad analytics
+      - name: Minify JS + CSS (deploy artifact only; source stays readable)
+        run: |
+          # esbuild is a fast, safe minifier. Write to a temp file and only swap on success
+          # so a minifier hiccup never ships a truncated bundle — worst case we serve the original.
+          npx --yes esbuild@0.24 app.js --minify --legal-comments=none --outfile=app.min.js && mv app.min.js app.js && echo "app.js minified: $(wc -c < app.js) bytes" || echo "js minify skipped"
+          npx --yes esbuild@0.24 styles.css --minify --outfile=styles.min.css && mv styles.min.css styles.css && echo "styles.css minified: $(wc -c < styles.css) bytes" || echo "css minify skipped"
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

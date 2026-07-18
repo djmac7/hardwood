@@ -2299,55 +2299,101 @@
     const cols = ptShownCols();
     const tb = $("#ptBody");
     tb.innerHTML = rows.slice(0, PT.shown).map((r) => { const href = PT.cfg.link(r); return `<tr class="${href ? "clickable" : ""}"${href ? ` onclick="location.hash='${href}'"` : ""}>${cols.map((c) => `<td class="${c.cls || ""}${c.hi ? " hi" : ""}">${ptCell(c, r)}</td>`).join("")}</tr>`; }).join("")
-      || `<tr><td colspan="${cols.length}" class="l" style="padding:26px 12px;color:var(--ink-3)">Nothing matches these filters. <a href="#" id="ptClear2" style="color:var(--accent-deep)">Clear</a></td></tr>`;
-    $("#ptCount").textContent = rows.length.toLocaleString() + " " + (rows.length === 1 ? PT.cfg.noun : PT.cfg.nounPl);
+      || `<tr class="pt-empty-row"><td colspan="${cols.length}"><div class="pt-empty"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><b>No ${esc(PT.cfg.nounPl)} match</b><span>Try loosening a filter or clearing your search.</span><button class="pt-empty-clear" id="ptClear2">Clear all filters</button></div></td></tr>`;
+    // result count: "X of Y" once anything is narrowing the set, else plain total
+    const total = PT.data.length, n = rows.length, active = PT.q || PT.filters.length;
+    $("#ptCount").innerHTML = active && n !== total
+      ? `<b>${n.toLocaleString()}</b> of ${total.toLocaleString()} ${esc(PT.cfg.nounPl)}`
+      : `${n.toLocaleString()} ${esc(n === 1 ? PT.cfg.noun : PT.cfg.nounPl)}`;
     const more = $("#ptMore"); if (more) more.hidden = rows.length <= PT.shown;
     const c2 = $("#ptClear2"); if (c2) c2.addEventListener("click", (e) => { e.preventDefault(); PT.q = ""; PT.filters = []; const qi = $("#ptQ"); if (qi) qi.value = ""; ptRerender(); });
   }
   function ptRerender() {
-    // pills
-    $("#ptPills").innerHTML = PT.filters.map((f, i) => `<button class="pt-pill" data-i="${i}">${esc(ptPillText(f))}<span class="x" data-rm="${i}">✕</span></button>`).join("");
+    // pills — clicking the body edits, clicking the ✕ removes
+    $("#ptPills").innerHTML = PT.filters.map((f, i) => `<button class="pt-pill" data-i="${i}" title="Edit filter">${esc(ptPillText(f))}<span class="x" data-rm="${i}" role="button" aria-label="Remove filter"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></span></button>`).join("");
     $("#ptReset").hidden = !(PT.filters.length || PT.q);
+    const badge = $("#ptAddBadge"); if (badge) { badge.textContent = PT.filters.length || ""; badge.hidden = !PT.filters.length; }
+    const add = $("#ptAdd"); if (add) add.classList.toggle("on", !!PT.filters.length);
     // header sort arrows
     $$("#ptHead th[data-k]").forEach((th) => { const on = th.dataset.k === PT.sort.k; th.classList.toggle("sorted", on); th.setAttribute("aria-sort", on ? (PT.sort.dir < 0 ? "descending" : "ascending") : "none"); });
     const rows = ptResults();
     ptRenderBody(rows);
     $$("#ptPills .pt-pill").forEach((p) => p.addEventListener("click", (e) => {
-      if (e.target.dataset.rm != null) { PT.filters.splice(+e.target.dataset.rm, 1); ptRerender(); return; }
+      const rm = e.target.closest("[data-rm]");
+      if (rm) { PT.filters.splice(+rm.dataset.rm, 1); ptRerender(); return; }
       ptOpenEditor(ptCol(PT.filters[+p.dataset.i].k), +p.dataset.i, p);
     }));
     ptSyncUrl();
+    const sh = $("#ptShare"); if (sh) sh.hidden = location.hash.indexOf("?v=") < 0;   // shareable only when the view is customized
   }
 
   // ---- filter menu / editors (a single floating panel) ----
-  function ptClosePanel() { const p = $("#ptPanel"); if (p) p.remove(); document.removeEventListener("click", ptOutside, true); }
-  function ptOutside(e) { const p = $("#ptPanel"); if (p && !p.contains(e.target) && !e.target.closest("#ptAdd,.pt-pill")) ptClosePanel(); }
+  function ptClosePanel() { const p = $("#ptPanel"); if (p) p.remove(); document.removeEventListener("click", ptOutside, true); document.removeEventListener("keydown", ptPanelKey, true); }
+  function ptOutside(e) { const p = $("#ptPanel"); if (p && !p.contains(e.target) && !e.target.closest("#ptAdd,#ptCols,.pt-pill")) ptClosePanel(); }
+  function ptPanelKey(e) { if (e.key === "Escape") { e.stopPropagation(); ptClosePanel(); } }
   function ptPanel(anchor, html) {
     ptClosePanel();
     const p = document.createElement("div"); p.id = "ptPanel"; p.className = "pt-panel"; p.innerHTML = html;
     document.body.appendChild(p);
     const rc = anchor.getBoundingClientRect();
-    p.style.top = (rc.bottom + window.scrollY + 6) + "px";
-    p.style.left = Math.min(rc.left + window.scrollX, window.innerWidth - p.offsetWidth - 12) + "px";
-    setTimeout(() => document.addEventListener("click", ptOutside, true), 0);
+    // clamp within the viewport on both axes (mobile: keep the panel on-screen and scrollable)
+    const gap = 6, maxW = Math.min(320, window.innerWidth - 20);
+    p.style.maxWidth = maxW + "px";
+    const left = Math.max(10, Math.min(rc.left + window.scrollX, window.innerWidth - p.offsetWidth - 10));
+    let top = rc.bottom + window.scrollY + gap;
+    // if it would overflow below the fold, and there's more room above, flip upward
+    if (rc.bottom + p.offsetHeight + gap > window.innerHeight && rc.top > window.innerHeight - rc.bottom)
+      top = rc.top + window.scrollY - p.offsetHeight - gap;
+    p.style.top = top + "px"; p.style.left = left + "px";
+    setTimeout(() => { document.addEventListener("click", ptOutside, true); document.addEventListener("keydown", ptPanelKey, true); }, 0);
     return p;
   }
+  const PT_TYPEHINT = { enum: "list", bool: "yes / no", num: "number", pct: "percent", money: "salary", date: "date", text: "text" };
   function ptOpenMenu(anchor) {
-    const items = PT.cfg.cols.filter((c) => c.type !== "text" && c.filt !== false).map((c) => `<button class="pt-mi" data-k="${c.k}">${esc(c.label)}</button>`).join("");
-    const p = ptPanel(anchor, `<div class="pt-panel-h">Filter by…</div><div class="pt-menu">${items}</div>`);
-    $$(".pt-mi", p).forEach((b) => b.addEventListener("click", () => ptOpenEditor(ptCol(b.dataset.k), -1, anchor)));
+    const cols = PT.cfg.cols.filter((c) => c.type !== "text" && c.filt !== false);
+    const active = new Set(PT.filters.map((f) => f.k));
+    const item = (c) => `<button class="pt-mi" data-k="${c.k}"><span class="pt-mi-l">${esc(c.label)}${active.has(c.k) ? '<span class="pt-mi-on" title="Currently filtered"></span>' : ""}</span><span class="pt-mi-t">${PT_TYPEHINT[c.type] || ""}</span></button>`;
+    const list = (f) => { const m = cols.filter((c) => !f || c.label.toLowerCase().includes(f)); return m.length ? m.map(item).join("") : `<div class="pt-mi-empty">No matching field</div>`; };
+    const p = ptPanel(anchor, `<div class="pt-panel-h">Add filter</div>${cols.length > 8 ? `<input class="pt-search" id="ptMenuSearch" placeholder="Find a field…" autocomplete="off" spellcheck="false">` : ""}<div class="pt-menu" id="ptMenuList">${list("")}</div>`);
+    const wire = () => $$(".pt-mi", p).forEach((b) => b.addEventListener("click", () => ptOpenEditor(ptCol(b.dataset.k), -1, anchor)));
+    wire();
+    const s = $("#ptMenuSearch", p);
+    if (s) { s.addEventListener("input", () => { $("#ptMenuList", p).innerHTML = list(s.value.toLowerCase().trim()); wire(); }); s.focus(); }
+    ptMenuKeys(p, s);   // arrow-key navigation + enter
+  }
+  // keyboard nav for a menu of .pt-mi buttons; `input` (optional) is the search field
+  function ptMenuKeys(p, input) {
+    const move = (dir) => {
+      const items = $$(".pt-mi", p); if (!items.length) return;
+      let i = items.findIndex((b) => b === document.activeElement);
+      i = i < 0 ? (dir > 0 ? 0 : items.length - 1) : (i + dir + items.length) % items.length;
+      items[i].focus();
+    };
+    (input || p).addEventListener("keydown", (e) => {
+      if (e.key === "ArrowDown") { e.preventDefault(); move(1); }
+      else if (e.key === "ArrowUp") { e.preventDefault(); move(-1); }
+    });
+    if (input) return;
+    p.addEventListener("keydown", (e) => { if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); move(e.key === "ArrowDown" ? 1 : -1); } });
   }
   function ptOpenEditor(c, editIdx, anchor) {
     const existing = editIdx >= 0 ? PT.filters[editIdx] : null;
     let body;
     if (c.type === "enum") {
-      const opts = ptOptions(c), sel = new Set(existing ? existing.vals : []);
+      const opts = ptOptions(c), sel = new Set(existing ? existing.vals.map(String) : []);
       const olabel = (o) => (c.fmtVal ? c.fmtVal(o) : "" + o);
       const optHtml = (filter) => opts.filter((o) => !filter || ("" + olabel(o)).toLowerCase().includes(filter)).map((o) =>
-        `<label class="pt-opt"><input type="checkbox" value="${esc("" + o)}" ${sel.has(o) ? "checked" : ""}>${c.enumIcon === "team" ? teamLogo(o, "xs") + " " + esc(olabel(o)) : esc("" + olabel(o))}</label>`).join("");
-      body = `<div class="pt-panel-h">${esc(c.label)}</div>${opts.length > 8 ? `<input class="pt-search" id="ptOptSearch" placeholder="Search…" autocomplete="off">` : ""}<div class="pt-opts" id="ptOpts">${optHtml("")}</div><div class="pt-actions"><button class="pt-apply" id="ptApply">Apply</button></div>`;
+        `<label class="pt-opt"><input type="checkbox" value="${esc("" + o)}" ${sel.has("" + o) ? "checked" : ""}><span class="pt-opt-l">${c.enumIcon === "team" ? teamLogo(o, "xs") + " " + esc(olabel(o)) : esc("" + olabel(o))}</span><svg class="pt-opt-ck" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></label>`).join("");
+      body = `<div class="pt-panel-h pt-h-row"><span>${esc(c.label)}</span><span class="pt-sel-count" id="ptSelN"></span></div>
+        ${opts.length > 8 ? `<input class="pt-search" id="ptOptSearch" placeholder="Search ${opts.length} options…" autocomplete="off" spellcheck="false">` : ""}
+        <div class="pt-quick"><button class="pt-mini-link" id="ptOptAll" type="button">Select all</button><button class="pt-mini-link" id="ptOptNone" type="button">Clear</button></div>
+        <div class="pt-opts" id="ptOpts">${optHtml("")}</div><div class="pt-actions"><button class="pt-apply" id="ptApply">Apply</button></div>`;
       const p = ptPanel(anchor, body);
-      const os = $("#ptOptSearch", p); if (os) os.addEventListener("input", () => { $("#ptOpts", p).innerHTML = optHtml(os.value.toLowerCase().trim()); });
+      const upd = () => { const n = $$("#ptOpts input:checked", p).length; const el = $("#ptSelN", p); el.textContent = n ? `${n} selected` : ""; };
+      const os = $("#ptOptSearch", p); if (os) os.addEventListener("input", () => { $("#ptOpts", p).innerHTML = optHtml(os.value.toLowerCase().trim()); upd(); });
+      p.addEventListener("change", upd); upd();
+      $("#ptOptAll", p).addEventListener("click", () => { $$("#ptOpts input", p).forEach((i) => (i.checked = true)); upd(); });
+      $("#ptOptNone", p).addEventListener("click", () => { $$("#ptOpts input", p).forEach((i) => (i.checked = false)); upd(); });
       $("#ptApply", p).addEventListener("click", () => {
         const vals = $$("#ptOpts input:checked", p).map((i) => i.value);
         ptCommit(editIdx, vals.length ? { k: c.k, op: "in", vals } : null); });
@@ -2372,11 +2418,16 @@
     } else { // numeric
       const op = existing ? existing.op : "gte", v0 = existing ? existing.vals[0] : "", v1 = existing && existing.vals[1] != null ? existing.vals[1] : "";
       const disp = (x) => x === "" ? "" : (c.inMul ? +(x / c.inMul).toFixed(2) : x);
+      // show the actual data range so the user knows the bounds they can filter within
+      const dv = PT.data.map((r) => ptGet(c, r)).filter((v) => v != null && !isNaN(v));
+      const fh = (v) => (c.type === "pct" || c.type === "money") ? ptFmtVal(c, v) : (Number.isInteger(v) ? v : (+v).toFixed(1));
+      const rangeHint = dv.length ? `data ranges ${fh(Math.min(...dv))}–${fh(Math.max(...dv))}` : "";
+      const hint = [c.hint, rangeHint].filter(Boolean).join(" · ");
       body = `<div class="pt-panel-h">${esc(c.label)}</div>
         <div class="pt-num"><select id="ptOp">${["gte", "lte", "eq", "between"].map((o) => `<option value="${o}" ${o === op ? "selected" : ""}>${o === "gte" ? "at least (≥)" : o === "lte" ? "at most (≤)" : o === "eq" ? "equals (=)" : "between"}</option>`).join("")}</select>
-          <div class="pt-num-in"><input id="ptV0" type="number" step="any" value="${disp(v0)}" placeholder="0"><span class="pt-u">${c.unit || ""}</span></div>
-          <div class="pt-num-in" id="ptV1wrap" ${op === "between" ? "" : "hidden"}><span class="pt-and">and</span><input id="ptV1" type="number" step="any" value="${disp(v1)}"><span class="pt-u">${c.unit || ""}</span></div>
-          ${c.hint ? `<span class="pt-hint">${c.hint}</span>` : ""}</div>
+          <div class="pt-num-in"><input id="ptV0" type="number" step="any" value="${disp(v0)}" placeholder="0" inputmode="decimal"><span class="pt-u">${c.unit || ""}</span></div>
+          <div class="pt-num-in" id="ptV1wrap" ${op === "between" ? "" : "hidden"}><span class="pt-and">and</span><input id="ptV1" type="number" step="any" value="${disp(v1)}" inputmode="decimal"><span class="pt-u">${c.unit || ""}</span></div>
+          ${hint ? `<span class="pt-hint">${esc(hint)}</span>` : ""}</div>
         <div class="pt-actions"><button class="pt-apply" id="ptApply">Apply</button></div>`;
       const p = ptPanel(anchor, body);
       const opSel = $("#ptOp", p); opSel.addEventListener("change", () => { $("#ptV1wrap", p).hidden = opSel.value !== "between"; });
@@ -2415,9 +2466,10 @@
     host.innerHTML = `<div class="pt-bar">
         <div class="pt-search-wrap"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
           <input id="ptQ" type="text" placeholder="${esc(cfg.searchPlaceholder || "Search…")}" autocomplete="off" spellcheck="false"></div>
-        <button class="pt-add" id="ptAdd"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Filter</button>
+        <button class="pt-add" id="ptAdd"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 6h16M7 12h10M10 18h4"/></svg>Filter<span class="pt-add-badge" id="ptAddBadge" hidden></span></button>
         <button class="pt-add pt-cols" id="ptCols" title="Show or hide columns"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="1.5"/><path d="M9.5 4v16M15 4v16"/></svg>Columns</button>
         <div class="pt-pills" id="ptPills"></div>
+        <button class="pt-share" id="ptShare" hidden title="Copy a link to this exact view"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1"/></svg><span class="pt-share-t">Copy link</span></button>
         <button class="pt-reset" id="ptReset" hidden>Reset</button>
         <span class="pt-count" id="ptCount"></span>
       </div>
@@ -2430,6 +2482,13 @@
     $("#ptAdd").addEventListener("click", (e) => { e.stopPropagation(); ptOpenMenu($("#ptAdd")); });
     $("#ptCols").addEventListener("click", (e) => { e.stopPropagation(); ptOpenCols($("#ptCols")); });
     $("#ptReset").addEventListener("click", () => { PT.q = ""; PT.filters = []; q.value = ""; ptRerender(); });
+    $("#ptShare").addEventListener("click", (e) => {
+      const btn = e.currentTarget, label = $(".pt-share-t", btn);
+      const done = () => { btn.classList.add("ok"); label.textContent = "Copied!"; setTimeout(() => { btn.classList.remove("ok"); label.textContent = "Copy link"; }, 1600); };
+      const url = location.origin + location.pathname + location.search + location.hash;
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(done, done);
+      else { const t = document.createElement("textarea"); t.value = url; document.body.appendChild(t); t.select(); try { document.execCommand("copy"); } catch (e) {} t.remove(); done(); }
+    });
     $("#ptMore").addEventListener("click", () => { PT.shown += 120; ptRenderBody(ptResults()); });
     PT.io = new IntersectionObserver((es) => { if (es.some((x) => x.isIntersecting)) { const rows = ptResults(); if (rows.length > PT.shown) { PT.shown += 120; ptRenderBody(rows); } } }, { rootMargin: "600px 0px" });
     PT.io.observe($("#ptMore"));
@@ -2865,7 +2924,27 @@
     compare: ["Compare Players", "Compare any two NBA players head-to-head across career stats."],
     news: ["NBA News", "Latest NBA headlines."],
   };
+  // thin top progress bar shown while a route's data loads (perceived speed)
+  const navProg = (() => {
+    const el = document.getElementById("navprog"); let t;
+    return {
+      start() { if (!el) return; clearTimeout(t); el.classList.add("on"); el.style.width = "8%"; requestAnimationFrame(() => (el.style.width = "72%")); },
+      done() { if (!el) return; el.style.width = "100%"; t = setTimeout(() => { el.classList.remove("on"); el.style.width = "0%"; }, 240); },
+    };
+  })();
+  // floating back-to-top button, revealed once the page is scrolled a screenful down
+  (() => {
+    const btn = document.getElementById("toTop"); if (!btn) return;
+    btn.addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
+    let ticking = false;
+    addEventListener("scroll", () => {
+      if (ticking) return; ticking = true;
+      requestAnimationFrame(() => { const show = window.scrollY > 720; if (show) btn.hidden = false; btn.classList.toggle("show", show); ticking = false; });
+    }, { passive: true });
+  })();
+
   async function route() {
+    navProg.start();
     const raw = location.hash.replace(/^#\/?/, ""), qi = raw.indexOf("?");
     const h = qi < 0 ? raw : raw.slice(0, qi), parts = h.split("/"), seg = parts[0], arg = parts[1];
     // filter-table state travels in a ?v= query param so filtered views are shareable/bookmarkable
@@ -2919,7 +2998,9 @@
     $$(".mainnav a, .mobile-menu a").forEach((a) => a.classList.toggle("on", a.dataset.route === (NAV[seg] || "home")));
     const mb = $("#moreBtn"); if (mb) mb.classList.toggle("on", !!$(".navmore-menu a.on"));
     window.scrollTo(0, 0);
+    const tt = $("#toTop"); if (tt) { tt.classList.remove("show"); }   // reset back-to-top on navigation
     revealInit();
+    navProg.done();
   }
 
   /* ---------- mobile menu ---------- */
