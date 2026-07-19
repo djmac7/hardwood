@@ -2,7 +2,7 @@
 """
 Build data/salaries.json by merging several OPEN, publicly-published salary
 datasets (salaries are facts, not copyrightable). Figures are nominal (not
-inflation adjusted). Coverage: 2000 through 2024-25.
+inflation adjusted). Coverage: 1990-91 through the current season + future deals.
 
 Sources (precedence high->low per player-season):
   1. erikgregorywebb/datasets  nba-salaries.csv   — 2000-2020, has team (full name)
@@ -10,6 +10,8 @@ Sources (precedence high->low per player-season):
        — 2010-2025, team as tricode; used to fill 2021-2025 with team info
   3. edwinjeon/NBA-Salary-Prediction  "NBA Player Salaries_2000-2025.csv"
        — 2000-2025, no team; backfills any 2021-2025 player-season missing above
+  4. datadavis2/nbasalaries  NBASalaries1990to2016.csv (from Basketball-Reference)
+       — season-gated to the pre-2000 gap (1991-1999); team dropped, re-derived from logs
 
 We deliberately do NOT scrape Spotrac (its ToS forbids automated scraping and its
 contract database is a licensed commercial product). HoopsHype's /salaries/ is
@@ -30,9 +32,15 @@ DATA = os.path.join(HERE, "..", "data")
 SRC_ERIK = "https://raw.githubusercontent.com/erikgregorywebb/datasets/master/nba-salaries.csv"
 SRC_STATSAL = "https://raw.githubusercontent.com/edwinjeon/NBA-Salary-Prediction/main/data/NBA%20Player%20Stats%20and%20Salaries_2010-2025.csv"
 SRC_SALONLY = "https://raw.githubusercontent.com/edwinjeon/NBA-Salary-Prediction/main/data/NBA%20Player%20Salaries_2000-2025.csv"
+# Historical backfill: per-team salaries 1990-91 → 2015-16, sourced from Basketball-Reference.
+# We use it only for the pre-2000 gap (1991-1999) below our other sources' floor; verified
+# against known-true figures (Jordan 1997-98 = $33.14M to the dollar). Team names are dropped
+# on ingest — attribution is re-derived stint-accurately from player logs in fix_salary_teams.py.
+SRC_HIST = "https://raw.githubusercontent.com/datadavis2/nbasalaries/master/NBASalaries1990to2016.csv"
 LOCAL_ERIK = os.path.join(HERE, "nba-salaries.csv")
 LOCAL_STATSAL = os.path.join(HERE, "nba-statsalaries.csv")
 LOCAL_SALONLY = os.path.join(HERE, "nba-salaries-2000-2025.csv")
+LOCAL_HIST = os.path.join(HERE, "nba-salaries-1990-2016.csv")
 LOCAL_CURRENT = os.path.join(HERE, "nba-salaries-current.csv")  # optional manual top-up: name,team,season,salary
 
 def fetch(url, local):
@@ -138,6 +146,16 @@ for r in rows_of(fetch(SRC_SALONLY, LOCAL_SALONLY)):
     if s and sal:
         add((r.get("Player") or "").strip(), s, sal, None, 3)
         counts["salonly"] += 1
+
+# source 4: historical backfill for the pre-2000 gap only (1991-1999). Lowest precedence and
+# season-gated, so it never touches a player-season any 2000+ source already carries — it only
+# adds the years below our floor. Team=None: fix_salary_teams.py derives era-accurate teams from
+# player logs (which handle mid-season trades that this single-team-per-season source cannot).
+for r in rows_of(fetch(SRC_HIST, LOCAL_HIST)):
+    s, sal = to_int(r.get("Season_End")), to_int(r.get("Salary"))
+    if s and sal and s < 2000:
+        add((r.get("Player") or "").strip(), s, sal, None, 4)
+        counts["hist"] += 1
 
 # ---- match to players + assemble outputs (same schema as before) ----
 by_player = defaultdict(list)      # pid -> [[season, salary]]

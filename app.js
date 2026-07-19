@@ -47,6 +47,13 @@
   const getTeamsTable = () => _ttCache ? Promise.resolve(_ttCache) : j(`data/teams_table.json?v=${V}`).then((d) => (_ttCache = d));
   let _fmap = null;   // historical franchise abbr → modern abbr (e.g. SEA → OKC), for URL redirects
   const getFranchiseMap = () => _fmap ? Promise.resolve(_fmap) : j(`data/franchise_map.json?v=${V}`).then((d) => (_fmap = d)).catch(() => (_fmap = {}));
+  // every abbr a modern franchise has used across its lineage (modern + predecessors), from an
+  // already-loaded franchise map. Salary attribution is era-accurate (a 2005 Seattle salary is
+  // filed under SEA), so franchise-level payroll must sum across all of these — else a relocated
+  // team's earlier years orphan under the old abbr and vanish from the modern team page.
+  const franchAbbrsFrom = (fmap, ab) => { const s = new Set([ab]); for (const e in fmap) if (fmap[e] === ab) s.add(e); return s; };
+  const franchiseAbbrs = async (ab) => franchAbbrsFrom(await getFranchiseMap(), ab);
+  const mergePayroll = (sal, abbrs) => { const m = {}; if (sal) abbrs.forEach((a) => (sal.teamPayroll[a] || []).forEach(([s, v]) => { m[s] = (m[s] || 0) + v; })); return m; };
   const _psCache = {};
   const getPlayersSeason = (yr) => _psCache[yr] ? Promise.resolve(_psCache[yr]) : j(`data/players_season/${yr}.json?v=${V}`).then((d) => (_psCache[yr] = d));
 
@@ -1795,7 +1802,7 @@
     const seasons = t.seasons || [];
     const ttRow = await getTeamsTable().then((d) => d.rows.find((r) => r.i === ab)).catch(() => null);
     const sal = await getSalaries().catch(() => null);
-    const pay = sal && sal.teamPayroll[ab] ? Object.fromEntries(sal.teamPayroll[ab]) : {};
+    const pay = mergePayroll(sal, await franchiseAbbrs(ab));   // sum across the whole lineage
     const hasPay = Object.keys(pay).length > 0;
     // all-time aggregates (prefer the franchise table row; fall back to summing seasons)
     const W = ttRow ? ttRow.w : seasons.reduce((a, s) => a + s.w, 0);
@@ -1871,7 +1878,8 @@
     let t; try { t = await getTeam(ab); } catch { return notFound("team"); }
     if (!y) return renderTeamHub(ab, t);   // no season → aggregate franchise hub
     const sal = await getSalaries().catch(() => null);
-    const pay = sal && sal.teamPayroll[ab] ? Object.fromEntries(sal.teamPayroll[ab]) : {};
+    const abbrs = franchAbbrsFrom(fmap, ab);   // this franchise's era abbrs (SEA + OKC …)
+    const pay = mergePayroll(sal, abbrs);
     const hasPay = Object.keys(pay).length > 0;
     const m = tMeta(ab), color = tColor(ab);
     const latest = (y && t.seasons.find((s) => s.season === +y)) || t.seasons[0];   // selected season drives header/contracts
@@ -1892,7 +1900,7 @@
     // season. In the current/default view, show whichever of the current or upcoming
     // season actually has more guaranteed deals (so the offseason shows next year, an
     // in-progress season shows the current one). Historical views use their own season.
-    const teamAt = (s) => (sal ? (sal.bySeason[s] || []) : []).filter((r) => r[2] === ab);
+    const teamAt = (s) => (sal ? (sal.bySeason[s] || []) : []).filter((r) => abbrs.has(r[2]));
     let contractSeason = latest.season;
     if (latest.season >= META.current) {
       contractSeason = teamAt(META.current + 1).length > teamAt(META.current).length ? META.current + 1 : META.current;
@@ -1960,7 +1968,7 @@
           </table></div>` : `<p class="muted" style="font-size:14px">No roster on record.</p>`}
         </div>
         <div class="card pad fh-collapsed" id="fhCard" style="min-width:0">
-          <div class="card-h"><h3>Franchise history</h3><span class="hint">by season${hasPay ? " · payroll ’00–20" : ""}</span></div>
+          <div class="card-h"><h3>Franchise history</h3><span class="hint">by season${hasPay ? " · payroll" : ""}</span></div>
           <div class="tbl-wrap"><table class="ref" style="min-width:0">
             <thead><tr><th class="l">Season</th><th>W</th><th>L</th><th>PCT</th><th>ORtg</th><th>DRtg</th>${hasPay ? "<th>Payroll</th>" : ""}<th></th></tr></thead>
             <tbody>${t.seasons.map((s, i) => `<tr class="fh-row${i >= FH_SHOWN ? " fh-x" : ""}" onclick="location.hash='#/team/${ab}/${s.season}'" style="cursor:pointer" title="${esc(tName(ab))} ${seasonLabel(s.season)} — schedule & results">
