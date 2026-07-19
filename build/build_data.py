@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Hardwood data pipeline.
+Dunkwise data pipeline.
 Reads the Kaggle NBA/ABA/BAA historical CSVs (via the six-spins checkout) and
 emits the static JSON the site loads on demand:
 

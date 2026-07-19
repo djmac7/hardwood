@@ -17,7 +17,7 @@ import json, os, re, sys, unicodedata, urllib.request
 
 BASE = os.path.join(os.path.dirname(__file__), "..")
 DATA = os.path.join(BASE, "data")
-UA = {"User-Agent": "Mozilla/5.0 (HardwoodBot; live refresh)"}
+UA = {"User-Agent": "Mozilla/5.0 (DunkwiseBot; live refresh)"}
 SITE = "https://site.api.espn.com/apis/site/v2/sports/basketball/nba"
 DRAFT_YEAR = 2026
 

@@ -3,34 +3,34 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Hardwood — NBA Stats &amp; History, Beautifully Legible</title>
+<title>Dunkwise — NBA Stats &amp; History, Beautifully Legible</title>
 <meta name="description" content="A modern NBA reference — every player and team, all-time leaders and standings from 1947 to today, designed for readability." />
 <meta name="theme-color" content="#faf9f5" media="(prefers-color-scheme: light)" />
 <meta name="theme-color" content="#1f1e1c" media="(prefers-color-scheme: dark)" />
 <!-- Social / Open Graph defaults (per-route values are updated at runtime by app.js:setSEO) -->
-<meta property="og:site_name" content="Hardwood" />
+<meta property="og:site_name" content="Dunkwise" />
 <meta property="og:type" content="website" />
-<meta property="og:title" content="Hardwood — NBA Stats &amp; History" />
+<meta property="og:title" content="Dunkwise — NBA Stats &amp; History" />
 <meta property="og:description" content="A modern NBA reference — every player and team, all-time leaders, standings, awards and salaries from 1947 to today." />
 <meta name="twitter:card" content="summary_large_image" />
-<meta name="twitter:title" content="Hardwood — NBA Stats &amp; History" />
+<meta name="twitter:title" content="Dunkwise — NBA Stats &amp; History" />
 <meta name="twitter:description" content="A modern NBA reference — every player and team, all-time leaders, standings, awards and salaries from 1947 to today." />
-<link rel="canonical" href="https://djmac7.github.io/hardwood/" />
+<link rel="canonical" href="https://dunkwise.com/" />
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebSite","name":"Hardwood","alternateName":"Hardwood NBA Reference","url":"/","potentialAction":{"@type":"SearchAction","target":{"@type":"EntryPoint","urlTemplate":"/#/players?q={search_term_string}"},"query-input":"required name=search_term_string"}}
+{"@context":"https://schema.org","@type":"WebSite","name":"Dunkwise","alternateName":"Dunkwise NBA Reference","url":"/","potentialAction":{"@type":"SearchAction","target":{"@type":"EntryPoint","urlTemplate":"/#/players?q={search_term_string}"},"query-input":"required name=search_term_string"}}
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link rel="preconnect" href="https://cdn.nba.com" />
 <link rel="preconnect" href="https://a.espncdn.com" />
 <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400..800&family=Geist+Mono:wght@400..600&display=swap" rel="stylesheet" />
-<!-- Shared design tokens (source of truth: ../hardwood-ds/tokens.css). Must load before styles.css. -->
+<!-- Shared design tokens (source of truth: ../dunkwise-ds/tokens.css). Must load before styles.css. -->
 <link rel="stylesheet" href="ds/tokens.css" />
 <!-- apply saved appearance before first paint (no flash of wrong theme) -->
 <script>try{var t=localStorage.getItem('hw-theme');if(t&&t!=='system')document.documentElement.setAttribute('data-theme',t);if(localStorage.getItem('hw-density')==='compact')document.documentElement.setAttribute('data-density','compact');}catch(e){}</script>
-<link rel="stylesheet" href="styles.css?v=134" />
+<link rel="stylesheet" href="styles.css?v=135" />
 <!-- start the app bundle downloading during head parse, before the body script tag -->
-<link rel="preload" as="script" href="app.js?v=134" />
+<link rel="preload" as="script" href="app.js?v=135" />
 </head>
 <body>
 <a href="#app" class="skip">Skip to content</a>
@@ -42,7 +42,7 @@
 
 <header class="topbar">
   <div class="wrap">
-    <a href="#/" class="brand"><span class="dot"></span> Hardwood</a>
+    <a href="#/" class="brand"><span class="dot"></span> Dunkwise</a>
     <nav class="mainnav">
       <a href="#/players" data-route="players">Players</a>
       <a href="#/teams" data-route="teams">Teams</a>
@@ -109,7 +109,7 @@
 <main id="app" tabindex="-1"><!-- Crawlable homepage hub. app.js replaces #app on boot (progressive enhancement);
      search engines and no-JS clients get real content and internal links to the static entity pages. -->
 <div class="wrap page">
-  <h1>Hardwood — NBA Stats, Salaries &amp; History</h1>
+  <h1>Dunkwise — NBA Stats, Salaries &amp; History</h1>
   <p>A modern NBA reference covering every player and team from 1947 to today — career stats, contracts and salaries, all-time leaders, standings, awards and box scores, laid out to be read.</p>
   <div class="boot" aria-hidden="true"><span class="spinner"></span></div>
   <h2>Explore</h2>
@@ -133,7 +133,7 @@
 <footer>
   <div class="wrap foot">
     <div>
-      <a href="#/" class="brand"><span class="dot"></span> Hardwood</a>
+      <a href="#/" class="brand"><span class="dot"></span> Dunkwise</a>
       <p>A modern NBA statistical reference — every player and team, all-time leaders and standings, laid out to be read.</p>
       <p class="disc">Data spans the 1947 (BAA) through 2025-26 seasons, from public historical datasets, rounded for display. Team logos and player photos load from official league CDNs. Not affiliated with the NBA.</p>
       <p class="disc data-refreshed" id="dataRefreshed" hidden><span class="dr-dot"></span><span id="dataRefreshedText"></span></p>
@@ -163,6 +163,6 @@
   <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V6M6 12l6-6 6 6"/></svg>
 </button>
 
-<script src="app.js?v=134"></script>
+<script src="app.js?v=135"></script>
 </body>
 </html>

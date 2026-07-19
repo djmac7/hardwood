@@ -1,3 +1,3 @@
 User-agent: *
 Allow: /
-Sitemap: https://djmac7.github.io/hardwood/sitemap.xml
+Sitemap: https://dunkwise.com/sitemap.xml
