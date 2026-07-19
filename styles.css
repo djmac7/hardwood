@@ -358,6 +358,7 @@ table.ref tbody tr.sal-sub .tm-tag,table.ref tbody tr.sal-sub td:nth-child(2){op
 .jersey .ab{position:absolute;bottom:9px;font-family:var(--mono);font-size:11px;letter-spacing:.1em;opacity:.9}
 .phead .pos{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
 .phead h1{font-size:clamp(30px,4vw,44px);line-height:1.02;letter-spacing:-.025em;margin:6px 0 10px}
+.phead .ph-nick{margin:-4px 0 12px;font-size:clamp(15px,1.6vw,18px);color:var(--accent-deep);letter-spacing:-.01em}
 .bio{display:flex;flex-wrap:wrap;gap:14px 0;margin:12px 0 14px}
 .bio .b{padding-right:18px;margin-right:18px;border-right:1px solid var(--line)}
 .bio .b:last-child{border-right:0}

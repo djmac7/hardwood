@@ -1441,7 +1441,9 @@
           <div class="ph-main">
             <div class="pos">${esc(c.pos || b.pos || "")}${active && isRealTeam(c.team) ? `${(c.pos || b.pos) ? " · " : ""}<a href="#/team/${c.team}">${esc(tName(c.team))}</a>` : ""}</div>
             <h1>${esc(p.name)}</h1>
+            ${b.nickname ? `<div class="ph-nick">“${esc(b.nickname)}”</div>` : ""}
             <div class="bio">
+              ${b.num ? bioItem("Number", `<span${b.numbers && b.numbers.length > 1 ? ` title="Numbers worn: ${b.numbers.map((n) => "#" + n).join(", ")}"` : ""}>#${esc(b.num)}${b.numbers && b.numbers.length > 1 ? `<span class="muted" style="font-weight:400"> +${b.numbers.length - 1}</span>` : ""}</span>`) : ""}
               ${bioItem("Seasons", `${seasonLabel(b.from || p.log[0][0])} – ${seasonLabel(b.to || curSeasonNo)}`)}
               ${bioItem("Experience", nSeasons <= 1 ? "Rookie" : nSeasons + " seasons")}
               ${b.ht ? bioItem("Ht / Wt", `${b.ht}${b.wt ? " · " + b.wt + " lb" : ""}`) : ""}

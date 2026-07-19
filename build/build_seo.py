@@ -420,7 +420,12 @@ def render_player(p):
             return None
     dr = DRAFT_INDEX.get(pid)
     facts = []
+    if b.get("nickname"): facts.append(("Nickname", esc(b["nickname"])))
     if pos: facts.append(("Position", esc(pos)))
+    if b.get("num"):
+        nums = b.get("numbers") or [b["num"]]
+        others = [n for n in nums if n != b["num"]]
+        facts.append(("Number", "#" + esc(b["num"]) + (f' <span class="muted">(also {", ".join("#" + esc(n) for n in others)})</span>' if others else "")))
     if is_real_team(team): facts.append(("Team", team_link))
     if b.get("ht"): facts.append(("Height", esc(b["ht"])))
     if b.get("wt"): facts.append(("Weight", f"{b['wt']} lb"))
