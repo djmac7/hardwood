@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Pre-deploy data-integrity gate for Hardwood.
+Pre-deploy data-integrity gate for Dunkwise.
 
 Accuracy is the product. This script hard-fails (exit 1) on the classes of
 corruption that have actually bitten us — a game with a score but an empty box

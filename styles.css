@@ -1,10 +1,10 @@
 /* ============================================================
-   Hardwood — Claude-inspired design system · COMPONENTS
+   Dunkwise — Claude-inspired design system · COMPONENTS
    ------------------------------------------------------------
    Design tokens (color, elevation, radius, type) come from the
    shared source of truth and are loaded first, via
    <link href="ds/tokens.css"> in index.html.
-   Source: ../hardwood-ds/tokens.css  ·  re-sync: node hardwood-ds/sync.mjs
+   Source: ../dunkwise-ds/tokens.css  ·  re-sync: node dunkwise-ds/sync.mjs
    Everything below paints from those tokens (var(--ink), …).
    ============================================================ */
 *{box-sizing:border-box}

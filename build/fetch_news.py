@@ -17,7 +17,7 @@ FEEDS = [
     ("Bleacher Report", "https://bleacherreport.com/articles/feed?tag_id=19"),
     ("Sporting News", "https://www.sportingnews.com/us/rss/nba"),
 ]
-UA = {"User-Agent": "Mozilla/5.0 (HardwoodBot; headlines aggregator)"}
+UA = {"User-Agent": "Mozilla/5.0 (DunkwiseBot; headlines aggregator)"}
 
 def tag(el):  # strip namespace
     return el.tag.split("}")[-1]

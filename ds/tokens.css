@@ -1,10 +1,10 @@
-/* AUTO-GENERATED — do not edit. Source of truth: hardwood-ds/tokens.css
-   Change tokens in hardwood-ds/tokens.css, then run `node sync.mjs`. */
+/* AUTO-GENERATED — do not edit. Source of truth: dunkwise-ds/tokens.css
+   Change tokens in dunkwise-ds/tokens.css, then run `node sync.mjs`. */
 /* ============================================================
-   Hardwood — Claude-inspired design system · DESIGN TOKENS
+   Dunkwise — Claude-inspired design system · DESIGN TOKENS
    ------------------------------------------------------------
    Single source of truth. Consumed by:
-     • claude-nba  (Hardwood NBA reference — static site)
+     • claude-nba  (Dunkwise NBA reference — static site)
      • six-spins   (daily NBA puzzle — Vite/React app)
 
    Rules of the road:

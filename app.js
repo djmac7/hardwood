@@ -1,5 +1,5 @@
 /* ============================================================
-   Hardwood — SPA over the historical NBA dataset (1947–2026)
+   Dunkwise — SPA over the historical NBA dataset (1947–2026)
    Async data access; official-CDN logos/headshots with fallbacks.
    ============================================================ */
 (function () {
@@ -146,7 +146,7 @@
       ${it.img ? `<div class="art-img"><img src="${esc(it.img)}" alt="" loading="lazy" onerror="this.parentNode.style.display='none'"></div>` : ""}
       ${it.summary ? `<p class="art-sum">${esc(it.summary)}</p>` : ""}
       <a class="btn art-read" href="${esc(it.url)}" target="_blank" rel="noopener noreferrer">Read the full story at ${esc(it.source)} →</a>
-      <p class="news-foot art-attr">Hardwood aggregates NBA headlines. Summary and image are provided by the publisher's feed for syndication; full articles, photos and rights remain with <b>${esc(it.source)}</b> — the link above opens the original.</p>
+      <p class="news-foot art-attr">Dunkwise aggregates NBA headlines. Summary and image are provided by the publisher's feed for syndication; full articles, photos and rights remain with <b>${esc(it.source)}</b> — the link above opens the original.</p>
       ${rel.length ? `<div class="section-title" style="margin-top:26px"><h2>Related</h2></div>
         <div class="ncard-grid">${rel.map((r) => newsCard(r, items.indexOf(r))).join("")}</div>` : ""}
     </div>`;
@@ -240,7 +240,7 @@
   if (COARSE) document.addEventListener("pointerdown", forceHideTT, true);
 
   /* ---------- per-route SEO (title, description, canonical, Open Graph, JSON-LD) ---------- */
-  const SITE = "Hardwood";
+  const SITE = "Dunkwise";
   function metaTag(sel, attr, key, val) {
     let el = document.head.querySelector(sel);
     if (!el) { el = document.createElement("meta"); el.setAttribute(attr, key); document.head.appendChild(el); }
@@ -613,7 +613,7 @@
     ]);
   }
   async function renderSources() {
-    setSEO("Data & Sources", "Where Hardwood's numbers come from, and how every figure is checked before it ships.");
+    setSEO("Data & Sources", "Where Dunkwise's numbers come from, and how every figure is checked before it ships.");
     let refreshed = "";
     try { const st = await getStatus(); if (st && st.refreshed) refreshed = fmtDate(st.refreshed.slice(0, 10), true); } catch (e) {}
     const src = (name, url, what) => `<li><a class="link" href="${url}" target="_blank" rel="noopener">${esc(name)}</a> — ${what}</li>`;
@@ -621,7 +621,7 @@
       <div class="crumb"><a href="#/">Home</a><span class="sep">/</span><span>Data &amp; sources</span></div>
       <div class="section-title"><div><span class="eyebrow">Data &amp; methodology</span><h2>Data &amp; sources</h2></div></div>
       <div class="legal">
-        <p>Accuracy is the point of Hardwood. Every figure is compiled from public, authoritative sources and cross-checked before it ships. This page lists exactly where the numbers come from and how they're verified.${refreshed ? ` Live data was last refreshed <b>${refreshed}</b>.` : ""}</p>
+        <p>Accuracy is the point of Dunkwise. Every figure is compiled from public, authoritative sources and cross-checked before it ships. This page lists exactly where the numbers come from and how they're verified.${refreshed ? ` Live data was last refreshed <b>${refreshed}</b>.` : ""}</p>
         <h3>Sources</h3>
         <ul class="src-list">
           ${src("Basketball-Reference", "https://www.basketball-reference.com", "the reference standard for career stats, contracts and salaries — the source of truth we reconcile salary figures against")}
@@ -636,7 +636,7 @@
         <h3>Corrections</h3>
         <p>If you spot something wrong, we want to know — accuracy reports are the most useful feedback we get. Reach us through the contact options in the app.</p>
         <h3>Attribution</h3>
-        <p>Team names, logos, player likenesses and league marks are the property of their respective owners and are used here for identification and reference only. Hardwood is an independent project and is not affiliated with, endorsed by, or sponsored by any league or team.</p>
+        <p>Team names, logos, player likenesses and league marks are the property of their respective owners and are used here for identification and reference only. Dunkwise is an independent project and is not affiliated with, endorsed by, or sponsored by any league or team.</p>
       </div>
     </div>`;
   }
@@ -754,7 +754,7 @@
       <a class="ss-hero" href="#/play/sixspins">
         <div class="ss-hero-l"><span class="eyebrow">Featured · Six Spins</span>
           <h3>Spin your way to a 99 overall.</h3>
-          <p>A continuous build — keep spinning to draft attributes and shape a 99-overall player, one wheel at a time. Plays right here on Hardwood.</p>
+          <p>A continuous build — keep spinning to draft attributes and shape a 99-overall player, one wheel at a time. Plays right here on Dunkwise.</p>
           <span class="ss-hero-cta">Play Six Spins <span>→</span></span></div>
         <div class="ss-hero-mark"><span>SIX</span><span>SPINS</span></div>
       </a>
@@ -763,7 +763,7 @@
     </div>`;
   }
 
-  // Six Spins embedded in-site (keeps players on Hardwood; framing is allowed).
+  // Six Spins embedded in-site (keeps players on Dunkwise; framing is allowed).
   function renderSixSpins() {
     setSEO("Six Spins — Play", "Play Six Spins — a continuous NBA game where you spin clues to build a 99-overall player.");
     app.innerHTML = `<div class="wrap page">
@@ -3143,7 +3143,7 @@
     // one; for the rest, add a visually-hidden h1 from the page title so the document outline
     // is well-formed for screen readers. (The prerendered SEO pages carry a visible h1.)
     if (!app.querySelector("h1")) {
-      const t = (document.title || "Hardwood").replace(/\s*[—-]\s*Hardwood.*$/, "").trim() || "Hardwood";
+      const t = (document.title || "Dunkwise").replace(/\s*[—-]\s*Dunkwise.*$/, "").trim() || "Dunkwise";
       app.insertAdjacentHTML("afterbegin", `<h1 class="vh">${esc(t)}</h1>`);
     }
     // safety net for the mono-fallback: reveal images already loaded from cache (whose onload

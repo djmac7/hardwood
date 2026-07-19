@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Static SEO pre-render for Hardwood.
+Static SEO pre-render for Dunkwise.
 
 The site itself is a hash-routed SPA (index.html + app.js), which Google cannot
 index per-entity — the #fragment never reaches the crawler, so every player and
@@ -28,11 +28,11 @@ DATA = ROOT / "data"
 _now = datetime.now(timezone.utc)
 BUILD_DATE = _now.date().isoformat()   # sitemap <lastmod> + age reference
 BUILD_YEAR = _now.year
-# The site is served from a GitHub project-pages subpath (djmac7.github.io/hardwood),
-# so every internal link, asset and canonical must carry that base — otherwise they
-# resolve to the domain root and 404. Override BASE_PATH="" for a root/custom-domain deploy.
-BASE = os.environ.get("BASE_PATH", "/hardwood").rstrip("/")
-SITE_URL = (os.environ.get("SITE_URL") or ("https://djmac7.github.io" + BASE)).rstrip("/")
+# Dunkwise is served from its own apex domain (dunkwise.com), so internal links,
+# assets and canonicals are root-relative — no base-path prefix. Override BASE_PATH
+# to deploy under a subpath (e.g. a GitHub project-pages preview).
+BASE = os.environ.get("BASE_PATH", "").rstrip("/")
+SITE_URL = (os.environ.get("SITE_URL") or ("https://dunkwise.com" + BASE)).rstrip("/")
 
 # ---------- formatting helpers (mirror app.js) ----------
 def esc(s): return html.escape(str(s), quote=True)
@@ -108,18 +108,18 @@ def page(title, desc, canon, body, jsonld=None, og_type="website"):
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>{esc(title)} — Hardwood</title>
+<title>{esc(title)} — Dunkwise</title>
 <meta name="description" content="{esc(desc)}" />
 <link rel="canonical" href="{esc(canon)}" />
 <meta name="theme-color" content="#faf9f5" media="(prefers-color-scheme: light)" />
 <meta name="theme-color" content="#1f1e1c" media="(prefers-color-scheme: dark)" />
-<meta property="og:site_name" content="Hardwood" />
+<meta property="og:site_name" content="Dunkwise" />
 <meta property="og:type" content="{og_type}" />
-<meta property="og:title" content="{esc(title)} — Hardwood" />
+<meta property="og:title" content="{esc(title)} — Dunkwise" />
 <meta property="og:description" content="{esc(desc)}" />
 <meta property="og:url" content="{esc(canon)}" />
 <meta name="twitter:card" content="summary_large_image" />
-<meta name="twitter:title" content="{esc(title)} — Hardwood" />
+<meta name="twitter:title" content="{esc(title)} — Dunkwise" />
 <meta name="twitter:description" content="{esc(desc)}" />
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Schibsted+Grotesk:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="{BASE}/ds/tokens.css" />
@@ -130,7 +130,7 @@ def page(title, desc, canon, body, jsonld=None, og_type="website"):
 <aside class="ad-rail ad-rail-l" aria-hidden="true"><div class="slot">Ad</div></aside>
 <aside class="ad-rail ad-rail-r" aria-hidden="true"><div class="slot">Ad</div></aside>
 <header class="topbar"><div class="wrap">
-  <a href="{BASE}/" class="brand"><span class="dot"></span> Hardwood</a>
+  <a href="{BASE}/" class="brand"><span class="dot"></span> Dunkwise</a>
   <nav class="mainnav">
     <a href="{BASE}/#/players">Players</a><a href="{BASE}/#/teams">Teams</a><a href="{BASE}/leaders.html">Leaders</a>
     <a href="{BASE}/standings.html">Standings</a><a href="{BASE}/salaries.html">Salaries</a><a href="{BASE}/awards.html">Awards</a>
@@ -659,7 +659,7 @@ def render_salaries(cur):
           "name": f"NBA Player Salaries {yr}",
           "description": f"Salary rankings for every NBA player under contract in the {yr} season.",
           "url": canonical("/salaries.html"),
-          "creator": {"@type": "Organization", "name": "Hardwood"},
+          "creator": {"@type": "Organization", "name": "Dunkwise"},
           "keywords": ["NBA salaries", "NBA player salary", "highest paid NBA players", yr]}
     return page(f"Highest-Paid NBA Players {yr} — Salaries", desc, canonical("/salaries.html"), body, ld)
 
@@ -710,7 +710,7 @@ def render_standings(year, season, cur, years):
           "name": f"NBA Standings {yr}",
           "description": f"Eastern and Western Conference standings for the {yr} NBA season.",
           "url": canonical(path),
-          "creator": {"@type": "Organization", "name": "Hardwood"},
+          "creator": {"@type": "Organization", "name": "Dunkwise"},
           "keywords": ["NBA standings", "NBA records", "Eastern Conference", "Western Conference", yr]}
     return path, page(f"NBA Standings {yr} — East & West", desc, canonical(path), body, ld)
 
@@ -767,7 +767,7 @@ def render_leaders(year, season, cur, years):
           "name": f"NBA League Leaders {yr}",
           "description": f"Statistical leaders for the {yr} NBA season.",
           "url": canonical(path),
-          "creator": {"@type": "Organization", "name": "Hardwood"},
+          "creator": {"@type": "Organization", "name": "Dunkwise"},
           "keywords": ["NBA leaders", "NBA scoring leaders", "points per game", "rebounds", "assists", yr]}
     return path, page(f"NBA League Leaders {yr} — Scoring, Rebounds, Assists", desc, canonical(path), body, ld)
 
@@ -830,7 +830,7 @@ def render_awards(champions):
           "name": "NBA Award Winners & Champions by Year",
           "description": "Year-by-year NBA award winners (MVP, Finals MVP, DPOY, ROY, and more) and league champions.",
           "url": canonical("/awards.html"),
-          "creator": {"@type": "Organization", "name": "Hardwood"},
+          "creator": {"@type": "Organization", "name": "Dunkwise"},
           "keywords": ["NBA MVP winners", "NBA champions", "NBA awards", "Finals MVP", "Defensive Player of the Year"]}
     return page("NBA Awards & Champions — Winners by Year", desc, canonical("/awards.html"), body, ld)
 
@@ -877,7 +877,7 @@ def render_alltime_career(at):
     </div>"""
     ld = {"@context": "https://schema.org", "@type": "Dataset", "name": "NBA All-Time Career Leaders",
           "description": "Career statistical leaders across NBA history.", "url": canonical("/leaders/all-time.html"),
-          "creator": {"@type": "Organization", "name": "Hardwood"},
+          "creator": {"@type": "Organization", "name": "Dunkwise"},
           "keywords": ["NBA all-time scoring leaders", "most points all time", "career rebounds", "career assists"]}
     return "/leaders/all-time.html", page("NBA All-Time Career Leaders — Points, Rebounds, Assists", desc,
                                           canonical("/leaders/all-time.html"), body, ld)
@@ -912,7 +912,7 @@ def render_alltime_season(at):
     </div>"""
     ld = {"@context": "https://schema.org", "@type": "Dataset", "name": "NBA Single-Season Records",
           "description": "Highest single-season statistical averages in NBA history.", "url": canonical("/leaders/single-season.html"),
-          "creator": {"@type": "Organization", "name": "Hardwood"},
+          "creator": {"@type": "Organization", "name": "Dunkwise"},
           "keywords": ["most points in a season", "single season records", "highest scoring average"]}
     return "/leaders/single-season.html", page("NBA Single-Season Records — Highest Scoring Seasons", desc,
                                                canonical("/leaders/single-season.html"), body, ld)
@@ -948,7 +948,7 @@ def render_draft(year, d, years):
     </div>"""
     ld = {"@context": "https://schema.org", "@type": "Dataset", "name": f"{year} NBA Draft Results",
           "description": f"All picks in the {year} NBA Draft.", "url": canonical(f"/draft/{year}.html"),
-          "creator": {"@type": "Organization", "name": "Hardwood"},
+          "creator": {"@type": "Organization", "name": "Dunkwise"},
           "keywords": [f"{year} NBA draft", "NBA draft results", "draft picks"]}
     return f"/draft/{year}.html", page(f"{year} NBA Draft — Full Results & Picks", desc, canonical(f"/draft/{year}.html"), body, ld)
 
@@ -1007,7 +1007,7 @@ def render_compare(pa, pb):
     ld = {"@context": "https://schema.org", "@type": "Dataset", "name": f"{na} vs {nb} — Career Comparison",
           "description": f"Head-to-head career statistical comparison of {na} and {nb}.",
           "url": canonical(f"/compare/{a}-vs-{b}.html"),
-          "creator": {"@type": "Organization", "name": "Hardwood"},
+          "creator": {"@type": "Organization", "name": "Dunkwise"},
           "keywords": [f"{na} vs {nb}", "NBA player comparison", na, nb]}
     return f"/compare/{a}-vs-{b}.html", page(f"{na} vs {nb} — Career Comparison", desc,
                                              canonical(f"/compare/{a}-vs-{b}.html"), body, ld)
@@ -1026,7 +1026,7 @@ def render_players_index(players):
     for letter in sorted(groups):
         items = "".join(f'<li><a href="{BASE}/players/{esc(pid)}.html">{esc(nm)}</a></li>' for pid, nm in groups[letter])
         sections += f'<h2 id="{letter}">{letter}</h2><ul class="link-cols">{items}</ul>'
-    desc = f"Complete A–Z index of all {len(players)} NBA and BAA players in Hardwood, 1947 to today, with career stats, salaries and contracts for each."
+    desc = f"Complete A–Z index of all {len(players)} NBA and BAA players in Dunkwise, 1947 to today, with career stats, salaries and contracts for each."
     body = f"""
     <div class="wrap page">
       <nav class="crumb" aria-label="Breadcrumb"><a href="{BASE}/">Home</a><span class="sep">/</span><span>Players</span></nav>
@@ -1084,7 +1084,7 @@ def render_2k(meta2k):
     </div>"""
     ld = {"@context": "https://schema.org", "@type": "Dataset", "name": f"{TWOK.get('edition','NBA 2K')} Player Ratings",
           "description": f"Overall and attribute ratings for all players in {TWOK.get('edition','NBA 2K')}.",
-          "url": canonical("/2k-ratings.html"), "creator": {"@type": "Organization", "name": "Hardwood"},
+          "url": canonical("/2k-ratings.html"), "creator": {"@type": "Organization", "name": "Dunkwise"},
           "keywords": [f"{TWOK.get('edition','NBA 2K')} ratings", "NBA 2K player ratings", "highest rated NBA 2K players"]}
     return "/2k-ratings.html", page(f"{TWOK.get('edition','NBA 2K')} Player Ratings — Full List", desc,
                                     canonical("/2k-ratings.html"), body, ld)
@@ -1112,7 +1112,7 @@ def render_injuries(namemap):
     </div>"""
     ld = {"@context": "https://schema.org", "@type": "Dataset", "name": "NBA Injury Report",
           "description": "Current NBA player injury statuses.", "url": canonical("/injuries.html"),
-          "creator": {"@type": "Organization", "name": "Hardwood"},
+          "creator": {"@type": "Organization", "name": "Dunkwise"},
           "keywords": ["NBA injury report", "NBA injuries", "who is injured NBA"]}
     return "/injuries.html", page("NBA Injury Report — Current Player Statuses", desc, canonical("/injuries.html"), body, ld)
 
@@ -1202,7 +1202,7 @@ def render_query(rows, cur):
     </div>"""
     ld = {"@context": "https://schema.org", "@type": "Dataset", "name": f"NBA {yr} Player Stats — Stat Finder",
           "description": f"Filterable per-player statistics for the {yr} NBA season.", "url": canonical("/query.html"),
-          "creator": {"@type": "Organization", "name": "Hardwood"},
+          "creator": {"@type": "Organization", "name": "Dunkwise"},
           "keywords": ["NBA stat finder", f"NBA player stats {yr}", "NBA stats filter", "custom NBA leaderboard"]}
     return "/query.html", page(f"NBA Stat Finder — {yr} Player Stats", desc, canonical("/query.html"), body, ld)
 

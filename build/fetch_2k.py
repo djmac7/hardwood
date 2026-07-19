@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 
 SRC = "https://raw.githubusercontent.com/MikeYan01/nba2k-player-ratings/HEAD/data/league.json"
 BASE = os.path.join(os.path.dirname(__file__), "..")
-UA = {"User-Agent": "Mozilla/5.0 (HardwoodBot; dataset import)"}
+UA = {"User-Agent": "Mozilla/5.0 (DunkwiseBot; dataset import)"}
 
 # attributes we keep for display (friendly subset of the full 37)
 KEEP = ["closeShot", "midRangeShot", "threePointShot", "freeThrow", "layup", "drivingDunk",

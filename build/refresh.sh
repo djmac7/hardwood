@@ -1,5 +1,5 @@
 #!/bin/bash
-# Hardwood live-data refresh. Run on an interval (launchd/cron).
+# Dunkwise live-data refresh. Run on an interval (launchd/cron).
 #  - every run: injuries, odds, scores, standings, news  (fast, always-current)
 #  - ~once a day: rosters, contracts, draft              (heavier)
 # Odds need a key: `export ODDS_API_KEY=...` here or in the launchd plist.

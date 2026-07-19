@@ -1,5 +1,5 @@
 /* ============================================================
-   Hardwood — data layer
+   Dunkwise — data layer
    Figures reflect the 2024·25 NBA season (final) and are rounded
    for display. Curated reference dataset for a design study.
    Season logs cover recent, high-confidence seasons.
