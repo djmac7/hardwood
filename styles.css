@@ -100,6 +100,7 @@ h1,h2,h3,h4{font-family:var(--serif);font-weight:500;letter-spacing:-.015em;text
 .results .sw{width:8px;height:26px;border-radius:3px;flex:none}
 .results .nm{font-weight:600;font-size:14px}
 .results .sub{font-family:var(--mono);font-size:11px;color:var(--ink-3);margin-left:auto}
+.results .sr-via{color:var(--accent-deep);font-weight:600}
 .results .empty{padding:16px 14px;color:var(--ink-3);font-size:13px}
 .results .grp-recent{display:flex;align-items:center;justify-content:space-between}
 .sr-clear{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-4);

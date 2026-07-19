@@ -3,7 +3,7 @@
    Async data access; official-CDN logos/headshots with fallbacks.
    ============================================================ */
 (function () {
-  const V = "44";
+  const V = "45";
   // Injury report is hidden site-wide until we have reliable, injury-specific data for
   // every player (the ESPN feed is offseason transaction noise). Flip to true to restore.
   const SHOW_INJURIES = false;
@@ -816,7 +816,8 @@
     const render = (q) => {
       const query = q.trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
       if (!query) { results.innerHTML = ""; return; }
-      const hits = SEARCH.filter((e) => e[1].toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").includes(query)).slice(0, 6);
+      const nrm = (s) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+      const hits = SEARCH.filter((e) => nrm(e[1]).includes(query) || (e[7] && nrm(e[7]).includes(query))).slice(0, 6);
       results.innerHTML = hits.map((e) => `<button class="gg-opt" data-pid="${e[0]}" data-nm="${esc(e[1])}">${headshot(e[0], e[1], e[5], "xs")}<span class="nm">${esc(e[1])}</span><span class="sub">${esc(e[4].split("-")[0])} · ${seasonLabel(e[2])}–${String(e[3]).slice(2)}</span></button>`).join("");
     };
     input.addEventListener("input", () => render(input.value));
@@ -2903,7 +2904,8 @@
       input.addEventListener("input", () => {
         const q = input.value.trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
         if (!q) { box.classList.remove("on"); return; }
-        const hits = SEARCH.filter((e) => e[1].toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").includes(q)).sort((x, y) => y[3] - x[3]).slice(0, 6);
+        const nrm = (s) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+        const hits = SEARCH.filter((e) => nrm(e[1]).includes(q) || (e[7] && nrm(e[7]).includes(q))).sort((x, y) => y[3] - x[3]).slice(0, 6);
         box.innerHTML = hits.map((e) => `<a data-id="${e[0]}">${headshot(e[0], e[1], e[5], "xs")}<span class="nm">${esc(e[1])}</span><span class="sub">${seasonLabel(e[2])}–${String(e[3]).slice(2)}</span></a>`).join("") || `<div class="empty">No match.</div>`;
         box.classList.add("on");
         $$("a", box).forEach((a) => a.addEventListener("click", () => go(a.dataset.id)));
@@ -2954,21 +2956,28 @@
     const render = (q) => {
       const query = q.trim().toLowerCase(); if (!query) { showRecents(); return; }
       const qn = query.normalize("NFD").replace(/[̀-ͯ]/g, "");
+      const isNum = /^#?\d{1,2}$/.test(query), numq = query.replace(/^#/, "");
       const scored = [];
       for (const e of SEARCH) {
         const nm = e[1].toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
-        const idx = nm.indexOf(qn); if (idx < 0) continue;
-        scored.push([idx === 0 ? 0 : 1, -(e[3]), e]); // startsWith first, then most recent
+        const idx = nm.indexOf(qn);
+        let rank, via = "";
+        if (idx === 0) rank = 0;                                            // name starts with
+        else if (idx > 0) rank = 1;                                         // name contains
+        else if (e[7] && e[7].toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").includes(qn)) { rank = 2; via = "“" + e[7] + "”"; }  // nickname
+        else if (isNum && e[8] && (" " + e[8] + " ").includes(" " + numq + " ")) { rank = 3; via = "#" + numq; }  // jersey number
+        else continue;
+        scored.push([rank, rank === 3 ? -(e[3] - e[2]) : -(e[3]), e, via]);  // numbers: longest career first
       }
       scored.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
-      const players = scored.slice(0, 7).map((s) => s[2]);
+      const players = scored.slice(0, 7);
       const teamHits = Object.keys(META.teams).filter((ab) => META.teams[ab].full.toLowerCase().includes(query)).slice(0, 4);
       active = -1; input.removeAttribute("aria-activedescendant");
       const uid = (box.id || "sr") + "-o";
       if (!players.length && !teamHits.length) { box.innerHTML = `<div class="empty">No players or teams match “${esc(q)}”.</div>`; box.classList.add("on"); input.setAttribute("aria-expanded", "true"); return; }
       let html = "", oi = 0;
-      if (players.length) html += `<div class="grp" role="presentation">Players</div>` + players.map((e) => `<a href="#/player/${e[0]}" data-nav role="option" id="${uid}${oi++}" aria-selected="false" data-t="p" data-id="${e[0]}" data-nm="${esc(e[1])}" data-tm="${esc(e[5] || "")}" data-sub="${esc(e[4].split("-")[0])}${e[5] ? " · " + esc(e[5]) : ""}">
-        ${headshot(e[0], e[1], e[5], "xs")}<span class="nm">${esc(e[1])}</span><span class="sub">${esc(e[4].split("-")[0])} · ${seasonLabel(e[2])}–${String(e[3]).slice(2)}</span></a>`).join("");
+      if (players.length) html += `<div class="grp" role="presentation">Players</div>` + players.map(([, , e, via]) => `<a href="#/player/${e[0]}" data-nav role="option" id="${uid}${oi++}" aria-selected="false" data-t="p" data-id="${e[0]}" data-nm="${esc(e[1])}" data-tm="${esc(e[5] || "")}" data-sub="${esc(e[4].split("-")[0])}${e[5] ? " · " + esc(e[5]) : ""}">
+        ${headshot(e[0], e[1], e[5], "xs")}<span class="nm">${esc(e[1])}</span><span class="sub">${via ? `<span class="sr-via">${esc(via)}</span> ` : ""}${esc(e[4].split("-")[0])} · ${seasonLabel(e[2])}–${String(e[3]).slice(2)}</span></a>`).join("");
       if (teamHits.length) html += `<div class="grp" role="presentation">Teams</div>` + teamHits.map((ab) => `<a href="#/team/${ab}" data-nav role="option" id="${uid}${oi++}" aria-selected="false" data-t="t" data-id="${ab}" data-nm="${esc(META.teams[ab].full)}" data-sub="${esc(META.teams[ab].conf)}">
         ${teamLogo(ab, "xs")}<span class="nm">${esc(META.teams[ab].full)}</span><span class="sub">${META.teams[ab].conf}</span></a>`).join("");
       box.innerHTML = html; box.classList.add("on"); input.setAttribute("aria-expanded", "true");
@@ -3290,9 +3299,18 @@
         ACTIONS.forEach((a) => items.push(a));
       } else {
         const scored = [];
-        for (const e of SEARCH) { const nm = norm(e[1]); const i = nm.indexOf(query); if (i < 0) continue; scored.push([i === 0 ? 0 : 1, -(e[3]), e]); }
+        const isNum = /^#?\d{1,2}$/.test(query), numq = query.replace(/^#/, "");
+        for (const e of SEARCH) {
+          const nm = norm(e[1]); const i = nm.indexOf(query);
+          let rank, via = "";
+          if (i === 0) rank = 0; else if (i > 0) rank = 1;
+          else if (e[7] && norm(e[7]).includes(query)) { rank = 2; via = "“" + e[7] + "”"; }
+          else if (isNum && e[8] && (" " + e[8] + " ").includes(" " + numq + " ")) { rank = 3; via = "#" + numq; }
+          else continue;
+          scored.push([rank, rank === 3 ? -(e[3] - e[2]) : -(e[3]), e, via]);
+        }
         scored.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
-        scored.slice(0, 6).forEach((s) => { const e = s[2]; items.push({ k: "player", id: e[0], label: e[1], sub: (e[4].split("-")[0]) + (e[5] ? " · " + e[5] : ""), tm: e[5], hash: "#/player/" + e[0] }); });
+        scored.slice(0, 6).forEach(([, , e, via]) => { items.push({ k: "player", id: e[0], label: e[1], sub: (via ? via + " · " : "") + (e[4].split("-")[0]) + (e[5] ? " · " + e[5] : ""), tm: e[5], hash: "#/player/" + e[0] }); });
         Object.keys(META.teams).filter((ab) => norm(META.teams[ab].full).includes(query)).slice(0, 3).forEach((ab) => items.push({ k: "team", id: ab, label: META.teams[ab].full, sub: META.teams[ab].conf + "ern Conference", hash: "#/team/" + ab }));
         ACTIONS.filter((a) => norm(a.label).includes(query) || norm(a.sub).includes(query)).forEach((a) => items.push(a));
       }
