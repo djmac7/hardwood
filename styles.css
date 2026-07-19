@@ -101,6 +101,18 @@ h1,h2,h3,h4{font-family:var(--serif);font-weight:500;letter-spacing:-.015em;text
 .results .nm{font-weight:600;font-size:14px}
 .results .sub{font-family:var(--mono);font-size:11px;color:var(--ink-3);margin-left:auto}
 .results .sr-via{color:var(--accent-deep);font-weight:600}
+/* home "on this day" card */
+.td-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px}
+.td-game{display:flex;flex-direction:column;gap:6px;padding:12px 14px;border:1px solid var(--line);border-radius:var(--rad-md);background:var(--panel-2);transition:border-color .15s,transform .15s}
+.td-game:hover{border-color:var(--line-strong);transform:translateY(-1px)}
+.td-date{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+.td-match{display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:14px}
+.td-match .td-team{display:flex;align-items:center;gap:5px;font-weight:600}
+.td-match img,.td-match .ava{width:18px;height:18px}
+.td-sc{min-width:26px;text-align:right;color:var(--ink-2)}
+.td-sc.w{color:var(--ink);font-weight:700}
+.td-at{color:var(--ink-4);font-size:11px}
+.td-lbl{font-size:11.5px;color:var(--accent-deep)}
 .results .empty{padding:16px 14px;color:var(--ink-3);font-size:13px}
 .results .grp-recent{display:flex;align-items:center;justify-content:space-between}
 .sr-clear{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-4);

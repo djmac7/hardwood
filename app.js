@@ -3,7 +3,7 @@
    Async data access; official-CDN logos/headshots with fallbacks.
    ============================================================ */
 (function () {
-  const V = "45";
+  const V = "46";
   // Injury report is hidden site-wide until we have reliable, injury-specific data for
   // every player (the ESPN feed is offseason transaction noise). Flip to true to restore.
   const SHOW_INJURIES = false;
@@ -35,6 +35,8 @@
   const getSalaries = () => j(`data/salaries.json?v=${V}`);
   const getCPI = () => j(`data/cpi.json?v=${V}`);
   const getGamesIdx = (s) => (+s === (META && META.current) ? jl(`data/games/${s}.json`) : j(`data/games/${s}.json?v=${V}`));
+  let _thisday = null;
+  const getThisday = () => _thisday ? Promise.resolve(_thisday) : j(`data/thisday.json?v=${V}`).then((d) => (_thisday = d)).catch(() => (_thisday = {}));
   const getGame = (id) => j(`data/game/${id}.json?v=${V}`);
   const getPGames = (pid) => j(`data/pgames/${pid}.json?v=${V}`);
   const getTwoK = () => j(`data/twok.json?v=${V}`);
@@ -452,7 +454,24 @@
         </div>
       </div>
 
+      <div class="reveal" id="thisDayHome" style="margin-top:22px"></div>
+
     </div>`;
+
+    getThisday().then((td) => {
+      const el = $("#thisDayHome"); if (!el || !td) return;
+      const now = new Date(), md = String(now.getMonth() + 1).padStart(2, "0") + "-" + String(now.getDate()).padStart(2, "0");
+      const entry = td[md]; if (!entry || !entry.games || !entry.games.length) return;
+      const gm = (g) => { const done = g.hs != null && g.as != null, hw = done && g.hs > g.as;
+        return `<a class="td-game" href="#/game/${g.id}">
+          <span class="td-date">${fmtDate(g.date, true)}</span>
+          <span class="td-match"><span class="td-team">${teamLogo(g.a, "xs")}${g.a}</span><span class="td-sc${done && !hw ? " w" : ""}">${g.as != null ? g.as : ""}</span>
+            <span class="td-at">@</span><span class="td-sc${hw ? " w" : ""}">${g.hs != null ? g.hs : ""}</span><span class="td-team">${teamLogo(g.h, "xs")}${g.h}</span></span>
+          ${g.label ? `<span class="td-lbl">${esc(g.label)}</span>` : ""}</a>`; };
+      el.innerHTML = `<div class="card big pad">
+        <div class="card-h"><h3>${entry.exact ? "On this day in NBA history" : "Around this time of year"}</h3><a class="hint" href="#/seasons" style="color:var(--ink-3)">Seasons →</a></div>
+        <div class="td-list">${entry.games.map(gm).join("")}</div></div>`;
+    });
 
     $("#leadersHome").innerHTML = `<div class="card-h"><h3>${seasonLabel(cur)} leaders</h3>
       <div class="tabs" role="tablist" data-leadtabs>${["pts", "trb", "ast", "per"].map((k, i) => `<button role="tab" data-k="${k}" aria-selected="${i === 0}">${CATMAP[k][1]}</button>`).join("")}</div></div>
@@ -1975,8 +1994,8 @@
         <div class="card pad" style="min-width:0">
           <div class="card-h"><h3>${seasonLabel(rosterExact ? selSeason : rosterSeason)} roster${rosterExact && selSeason === rosterSeason ? " leaders" : ""}</h3><span class="hint">${rosterExact ? "per game" : "latest on record · per game"}</span></div>
           ${displayRoster.length ? `<div class="tbl-wrap"><table class="ref">
-            <thead><tr><th class="l">Player</th><th>PTS</th><th>REB</th><th>AST</th><th>GP</th><th class="l">Pos</th></tr></thead>
-            <tbody>${displayRoster.map((r) => `<tr><td class="l"><span class="who">${headshot(r[0], r[1], ab, "xs")}<a href="#/player/${r[0]}">${esc(r[1])}</a></span></td>
+            <thead><tr><th class="num">#</th><th class="l">Player</th><th>PTS</th><th>REB</th><th>AST</th><th>GP</th><th class="l">Pos</th></tr></thead>
+            <tbody>${displayRoster.map((r) => `<tr><td class="num muted">${r[7] != null && r[7] !== "" ? esc(r[7]) : ""}</td><td class="l"><span class="who">${headshot(r[0], r[1], ab, "xs")}<a href="#/player/${r[0]}">${esc(r[1])}</a></span></td>
               <td class="hi">${one(r[4])}</td><td>${one(r[5])}</td><td>${one(r[6])}</td><td>${r[3]}</td><td class="l muted">${esc((r[2] || "").split("-")[0])}</td></tr>`).join("")}</tbody>
           </table></div>` : `<p class="muted" style="font-size:14px">No roster on record.</p>`}
         </div>
