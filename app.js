@@ -1336,9 +1336,16 @@
     if (sal) CPI = CPI || await getCPI().catch(() => null);
     const salRows = (sal && sal.byPlayer[id]) || null;
     // season -> team from the player's own game log (fills teams the salary source lacks)
-    const salTeam = {};
-    p.log.forEach((r) => { if (r[16] !== 2 && isRealTeam(r[2])) salTeam[r[0]] = r[2]; });
-    const teamForSeason = (yr) => salTeam[yr] || ((sal && sal.bySeason[yr] || []).find((x) => x[0] === id) || [])[2] || "";
+    const salTeam = {}, logTeams = {};
+    p.log.forEach((r) => { if (r[16] !== 2 && isRealTeam(r[2])) { salTeam[r[0]] = r[2]; (logTeams[r[0]] = logTeams[r[0]] || new Set()).add(r[2]); } });
+    const teamForSeason = (yr) => {
+      const row = ((sal && sal.bySeason[yr] || []).find((x) => x[0] === id) || [])[2];
+      // dead-money re-attribution: when the salary is filed under a team the player never suited
+      // up for that season (a bought-out vet's guaranteed money on the team that waived him),
+      // show that paying team; otherwise use the game-log team he actually played for.
+      if (row && logTeams[yr] && !logTeams[yr].has(row)) return row;
+      return salTeam[yr] || row || "";
+    };
     const b = p.bio, c = p.cur, col = tColor(c.team), curSeasonNo = c.season;
     const age = b.born ? curSeasonNo - (+b.born.slice(0, 4)) : null;
     const spanTeams = [...new Set(p.log.map((r) => r[2]))].filter(isRealTeam);
@@ -1896,15 +1903,11 @@
     const rosterExact = !!seasonRoster || selSeason === rosterSeason;
     const conf = m ? m.conf : null;
     const teamSel = `<label class="season-select"><span>Season</span><select class="mini-select" id="tmSeasonSel">${t.seasons.map((s) => `<option value="${s.season}" ${s.season === latest.season ? "selected" : ""}>${seasonLabel(s.season)}</option>`).join("")}</select></label>`;
-    // Contracts are forward-looking: once a season ends, "on the books" means NEXT
-    // season. In the current/default view, show whichever of the current or upcoming
-    // season actually has more guaranteed deals (so the offseason shows next year, an
-    // in-progress season shows the current one). Historical views use their own season.
+    // The payroll section always reflects the season the page is showing — never a different
+    // year. (Previously the offseason view jumped forward to next season's cap when it had more
+    // signed deals, which surfaced e.g. a 2026-27 payroll on the 2025-26 team page.)
     const teamAt = (s) => (sal ? (sal.bySeason[s] || []) : []).filter((r) => abbrs.has(r[2]));
-    let contractSeason = latest.season;
-    if (latest.season >= META.current) {
-      contractSeason = teamAt(META.current + 1).length > teamAt(META.current).length ? META.current + 1 : META.current;
-    }
+    const contractSeason = latest.season;
     const contracts = teamAt(contractSeason);
     const payroll = contracts.reduce((a, r) => a + r[3], 0);
     let seed = null;

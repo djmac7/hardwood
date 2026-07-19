@@ -9,7 +9,15 @@ the reconciled-against-Basketball-Reference values in build/salary-overrides.jso
 re-apply them here, then recompute the derived structures. fetch_salaries.py calls this as
 its last step, so re-running the pipeline can no longer re-introduce the inflation.
 
-Overrides are keyed  pid -> { "season": salary }  and cover only the corrupted seasons.
+Overrides are keyed  pid -> { "season": value }  where value is either:
+  - a number            → correct the salary amount only, or
+  - {"s": salary, "t": abbr} → also RE-ATTRIBUTE the season to team `abbr`.
+
+The team form fixes "dead money" mis-attribution: a bought-out veteran's full guaranteed
+salary is carried by the team that waived him, but the raw pipeline files it under the
+minimum-salary team he later signed with (e.g. Kemba Walker's $37.3M 2022-23 landing on the
+Mavericks, where he played 9 games on a minimum). Re-attributing to the waiving team keeps
+his career-earnings total intact while fixing the team-payroll pages.
 """
 import json, os
 from collections import defaultdict
@@ -32,17 +40,21 @@ def main():
     for pid, seasons in ovr.items():
         for ys, v in seasons.items():
             yr = int(ys)
+            amount = v["s"] if isinstance(v, dict) else v
+            team = v.get("t") if isinstance(v, dict) else None
             hit = False
             for pair in bp.get(pid, []):
                 if pair[0] == yr:
-                    if pair[1] != v:
-                        pair[1] = v; applied += 1
+                    if pair[1] != amount:
+                        pair[1] = amount; applied += 1
                     hit = True
             if not hit:
-                bp.setdefault(pid, []).append([yr, v]); bp[pid].sort()
+                bp.setdefault(pid, []).append([yr, amount]); bp[pid].sort()
             for row in bs.get(str(yr), []):
                 if row[0] == pid:
-                    row[3] = v
+                    row[3] = amount
+                    if team:
+                        row[2] = team   # re-attribute dead money to the paying (waiving) team
     print(f"salary overrides applied: {applied}")
 
     # recompute derived structures from corrected byPlayer / bySeason
