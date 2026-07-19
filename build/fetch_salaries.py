@@ -237,3 +237,7 @@ subprocess.run([sys.executable, os.path.join(HERE, "fix_salary_teams.py")], chec
 # 2020-21..2023-24. Re-apply the Basketball-Reference-verified figures last so a rebuild
 # can never re-introduce the ~20% salary inflation. (See build/apply_salary_overrides.py.)
 subprocess.run([sys.executable, os.path.join(HERE, "apply_salary_overrides.py")], check=True)
+# Apply Basketball-Reference-verified per-team salary splits (dead-money re-attribution for
+# bought-out vets) + 2025-26 fills. Must run after overrides so it splits corrected totals.
+subprocess.run([sys.executable, os.path.join(HERE, "apply_salary_splits.py")], check=True)
+# NOTE: run build/restore_future_salaries.py after this to re-attach 2027+ contract years.

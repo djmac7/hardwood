@@ -244,6 +244,9 @@ table.ref td.num,table.ref th.num{text-align:center;color:var(--ink-3);width:1%;
 table.ref tbody tr.clickable{cursor:pointer}
 /* legible interactivity: a clickable row grows a quiet coral edge on hover/keyboard focus */
 table.ref tbody tr.clickable:hover td:first-child,table.ref tbody tr.clickable:focus-visible td:first-child{box-shadow:inset 2px 0 0 var(--accent)}
+/* sub-rows of a split (traded/bought-out) salary season connect to the season's first row */
+table.ref tbody tr.sal-sub td{border-top-color:transparent}
+table.ref tbody tr.sal-sub .tm-tag,table.ref tbody tr.sal-sub td:nth-child(2){opacity:.72}
 /* Mobile: dense stat tables scroll horizontally with a pinned first column. Tighten
    spacing, cap the name column (ellipsis), and set names in the narrower sans face so
    the stat columns are visible without a scroll, and a stronger right-edge fade hints

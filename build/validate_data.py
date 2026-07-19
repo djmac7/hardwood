@@ -128,14 +128,20 @@ def check_salaries():
             tot = sum(r[3] for r in rows)
             if tot > SEASON_TOTAL_MAX:
                 hard(f"league salary total for {yi} = ${tot/1e9:.2f}B exceeds ${SEASON_TOTAL_MAX/1e9:.1f}B ceiling — broad inflation?")
-    # byPlayer / bySeason consistency
-    inc = 0
+    # byPlayer / bySeason consistency: byPlayer's season figure must equal the SUM of that
+    # player's bySeason rows — a season can legitimately split across teams (a traded or
+    # bought-out player), so compare totals rather than assuming one row per season.
+    bs_sum = {}
     for y, rows in bs.items():
         for pid, nm, ab, v in rows:
-            if pid and pid in bp:
-                d = dict(bp[pid])
-                if int(y) in d and d[int(y)] != v:
-                    inc += 1
+            if pid:
+                bs_sum[(pid, int(y))] = bs_sum.get((pid, int(y)), 0) + v
+    inc = 0
+    for (pid, y), tot in bs_sum.items():
+        if pid in bp:
+            d = dict(bp[pid])
+            if y in d and d[y] != tot:
+                inc += 1
     if inc:
         hard(f"{inc} byPlayer/bySeason salary inconsistencies")
     print(f"  salary player-seasons checked: {sum(len(a) for a in bp.values())}")

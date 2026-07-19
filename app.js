@@ -1496,7 +1496,14 @@
             <div class="card-h"><h3>Salary by season</h3>${CPI ? `<div class="tabs" id="pSalToggle"><button data-adj="0" aria-selected="true">Nominal</button><button data-adj="1" aria-selected="false">${seasonLabel(CPI.base)} $</button></div>` : `<span class="hint">tap a row → salaries</span>`}</div>
             <div class="tbl-wrap"><table class="ref" style="min-width:0">
               <thead><tr><th class="l grow">Season</th><th class="l">Team</th><th>Salary</th></tr></thead>
-              <tbody>${salRows.map((r) => { const tm = teamForSeason(r[0]), fut = r[0] > META.current; return `<tr class="clickable${fut ? " fut-row" : ""}" onclick="location.hash='#/salaries/${r[0]}'"><td class="l season grow">${seasonLabel(r[0])}${fut ? ` <span class="fut-tag">Future</span>` : ""}</td><td class="l muted">${tm ? teamTag(tm) : "—"}</td><td class="hi pSal" data-sal="${r[1]}" data-season="${r[0]}">${moneyFull(r[1])}</td></tr>`; }).join("")}
+              <tbody>${salRows.map((r) => {
+                const fut = r[0] > META.current;
+                // a season split across teams (a traded / bought-out player) shows one row per
+                // team — each the exact figure that team paid — matching the team-payroll pages.
+                const parts = ((sal && sal.bySeason[r[0]]) || []).filter((x) => x[0] === id);
+                const sub = parts.length > 1 ? parts.slice().sort((a, b) => b[3] - a[3]).map((p) => [p[2], p[3]]) : [[teamForSeason(r[0]), r[1]]];
+                return sub.map(([tm, amt], i) => `<tr class="clickable${fut ? " fut-row" : ""}${i > 0 ? " sal-sub" : ""}" onclick="location.hash='#/salaries/${r[0]}'"><td class="l season grow">${i === 0 ? seasonLabel(r[0]) + (fut ? ` <span class="fut-tag">Future</span>` : "") + (sub.length > 1 ? ` <span class="muted" style="font-weight:400">· ${sub.length} teams</span>` : "") : ""}</td><td class="l muted">${tm ? teamTag(tm) : "—"}</td><td class="hi pSal" data-sal="${amt}" data-season="${r[0]}">${moneyFull(amt)}</td></tr>`).join("");
+              }).join("")}
                 <tr class="total"><td class="l grow">Tracked to date</td><td class="l">—</td><td class="hi pSalTotal" data-sal="${sal.careerEarn[id]}">${moneyFull(sal.careerEarn[id])}</td></tr></tbody></table></div>
             ${(() => { const fut = salRows.filter((r) => r[0] > META.current); return fut.length ? `<p class="news-foot" style="border:0;margin:10px 0 0;padding:0"><span class="fut-tag">Future</span> ${fut.length} season${fut.length > 1 ? "s" : ""} still under contract — ${money(fut.reduce((a, r) => a + r[1], 0))} committed, not yet earned.</p>` : ""; })()}
           </div>
