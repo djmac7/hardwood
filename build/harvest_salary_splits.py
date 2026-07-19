@@ -35,6 +35,10 @@ NAME2AB = {
     "philadelphia 76ers": "PHI", "phoenix suns": "PHX", "portland trail blazers": "POR",
     "sacramento kings": "SAC", "san antonio spurs": "SAS", "toronto raptors": "TOR",
     "utah jazz": "UTA", "washington wizards": "WAS",
+    # relocated/renamed franchises that existed within our split window (era-accurate abbrs,
+    # matching how our bySeason attributes them; team pages aggregate these onto the modern club)
+    "seattle supersonics": "SEA", "new jersey nets": "NJN", "new orleans hornets": "NOH",
+    "new orleans/oklahoma city hornets": "NOK", "vancouver grizzlies": "VAN",
 }
 JUNK = {"team", "", "career", "(may be incomplete)"}
 VALID = set(meta["teams"].keys())
@@ -95,7 +99,7 @@ for fp in glob.glob(os.path.join(CACHE, "*.json")):
         by_season[yr][ab] = by_season[yr].get(ab, 0) + int(amt)
 
     for yr, parts in by_season.items():
-        if yr < 2016 or yr > CURRENT:
+        if yr < 2000 or yr > CURRENT:
             continue
         bbr_total = sum(parts.values())
         cur = ours.get((pid, yr))
@@ -113,29 +117,29 @@ for fp in glob.glob(os.path.join(CACHE, "*.json")):
                 splits.setdefault(pid, {})[str(yr)] = entry
                 n_fill += 1
             continue
-        # existing player-season: split only genuine dead-money seasons. A season is distorted if
-        # EITHER signal fires:
-        #   (a) off-log money — BBR files >=25% of the total under a team the player never suited
-        #       up for that season (a former team's dead money after a buyout / stretch), or
-        #   (b) mis-attribution — our single-team figure sits on a team BBR shows paid < half the
-        #       total (he was a minimum signing there; the bulk is someone else's dead money).
-        # Either way BBR's itemised split is authoritative. Both together are robust to how our
-        # data currently attributes the salary and to whether the min team is in his game log.
+        # existing player-season BBR shows split across teams → replace our single-team figure with
+        # BBR's exact per-team split so every team-payroll page is precise. Applies to ALL trades,
+        # not only dead money. Guarded so verified single-team data is only overwritten when BBR is
+        # trustworthy here: either the season totals agree (a clean mid-season trade), or there's a
+        # dead-money signature (off-log money / a minimum-signing mis-attribution) where our single
+        # total was itself incomplete. Totals that disagree with no dead-money signal are left alone.
         if len(parts) < 2:
             continue
+        if bbr_total > 90_000_000 or any(v <= 0 for v in parts.values()):
+            skipped += 1; continue            # implausible parse — leave it
+        our_total = sum(a for _, a in cur)
+        totals_ok = our_total > 0 and abs(bbr_total - our_total) / our_total <= 0.10
         logset = set(log_by.get(pid, {}).get(yr, {}))
         off_log = sum(v for ab, v in parts.items() if ab not in logset) if logset else 0
         our_ab = cur[0][0] if len(cur) == 1 else None
-        mis_attr = our_ab is not None and parts.get(our_ab, 0) < bbr_total * 0.5
-        if off_log < bbr_total * 0.25 and not mis_attr:
-            continue                          # our team really did pay the bulk — a normal trade
-        if bbr_total > 90_000_000 or any(v <= 0 for v in parts.values()):
-            skipped += 1; continue            # implausible parse — leave it
+        dead_money = off_log >= bbr_total * 0.25 or (our_ab is not None and parts.get(our_ab, 0) < bbr_total * 0.5)
+        if not (totals_ok or dead_money):
+            skipped += 1; continue            # totals disagree and no dead-money signal — leave it
         splits.setdefault(pid, {})[str(yr)] = [[a, v] for a, v in sorted(parts.items(), key=lambda x: -x[1])]
         n_dead += 1
 
 json.dump(splits, open(os.path.join(HERE, "salary-splits.json"), "w"), separators=(",", ":"), ensure_ascii=False, sort_keys=True)
-print(f"dead-money splits: {n_dead} · 2025-26 fills: {n_fill} · skipped (total mismatch): {skipped}")
+print(f"per-team trade splits: {n_dead} · 2025-26 fills: {n_fill} · skipped (total mismatch): {skipped}")
 print(f"players with corrections: {len(splits)}")
 if unmapped:
     print("UNMAPPED team names (ignored):", sorted(unmapped)[:20])
