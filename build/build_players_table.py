@@ -6,7 +6,10 @@ so the whole table can be filtered/sorted client-side without touching per-playe
 
 Run:  python3 build/build_players_table.py   (after player files / salaries are built)
 """
-import json, os, glob
+import json, os, glob, sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from normalize_colleges import normalize as normalize_college
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DATA = os.path.join(HERE, "..", "data")
@@ -41,6 +44,7 @@ for fp in glob.glob(os.path.join(DATA, "player", "*.json")):
     bio, car, cur = d.get("bio") or {}, d.get("career") or {}, d.get("cur") or {}
     pid = d["id"]
     frm, to = bio.get("from"), bio.get("to")
+    _col_primary, _col_all = normalize_college(bio.get("college"))
     row = {
         "i": pid, "n": d.get("name"),
         "p": bio.get("pos"), "pg": pgroup(bio.get("pos")),
@@ -49,7 +53,9 @@ for fp in glob.glob(os.path.join(DATA, "player", "*.json")):
         "yr": (to - frm + 1) if (frm and to) else None,
         "act": 1 if to == CUR else 0,
         "hof": 1 if bio.get("hof") else 0,
-        "col": bio.get("college"),
+        # col = school they left for the NBA; cols = every school attended, so the
+        # table can filter on any of them (see normalize_colleges.py)
+        "col": _col_primary,
         "ht": inches(bio.get("ht")), "htx": bio.get("ht"),
         "g": car.get("g"),
         "pts": car.get("pts"), "trb": car.get("trb"), "ast": car.get("ast"),
@@ -57,6 +63,8 @@ for fp in glob.glob(os.path.join(DATA, "player", "*.json")):
         "fg": car.get("fg"), "tp": car.get("tp"), "ft": car.get("ft"),
         "sal": cur_sal.get(pid),
     }
+    if len(_col_all) > 1:
+        row["cols"] = _col_all   # only transfers carry the full chain
     rows.append(row)
 
 # stable, useful default order: most career points first (stars on top)

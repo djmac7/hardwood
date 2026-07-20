@@ -3,7 +3,7 @@
    Async data access; official-CDN logos/headshots with fallbacks.
    ============================================================ */
 (function () {
-  const V = "46";
+  const V = "47";
   // Injury report is hidden site-wide until we have reliable, injury-specific data for
   // every player (the ESPN feed is offseason transaction noise). Flip to true to restore.
   const SHOW_INJURIES = false;
@@ -1471,7 +1471,7 @@
         ${teamsStrip ? `<div class="co-row"><span class="co-lab">Career path</span>${teamsStrip}</div>` : ""}
       </div>` : ""}
 
-      <nav class="jumpnav" id="jumpNav">${[["Stats", "sec-stats"], ["Shooting", "sec-shooting"], ["Recent", "recentForm"], (salRows && salRows.length ? ["Salary", "sec-salary"] : null), ["2K", "sec-2k"], ["News", "playerNews"], ["Related", "relPlayers"]].filter(Boolean).map(([lab, t]) => `<a href="#" data-tgt="${t}">${lab}</a>`).join("")}</nav>
+      <nav class="jumpnav" id="jumpNav">${[["Stats", "sec-stats"], ["Recent", "recentForm"], ["Shooting", "sec-shooting"], (salRows && salRows.length ? ["Salary", "sec-salary"] : null), ["2K", "sec-2k"], ["News", "playerNews"], ["Related", "relPlayers"]].filter(Boolean).map(([lab, t]) => `<a href="#" data-tgt="${t}">${lab}</a>`).join("")}</nav>
 
       <div class="card pad" id="sec-stats" style="min-width:0;margin-bottom:22px">
         <div class="card-h"><div style="display:flex;align-items:baseline;gap:14px;min-width:0"><h3>Career stats</h3></div>
@@ -1485,6 +1485,7 @@
         <div id="statBody">${statTable("perg")}</div>
       </div>
 
+      <div id="recentForm"></div>
       <div class="col2grid" id="sec-shooting">
         <div class="card pad">
           <div class="card-h"><h3>Career shooting</h3><span class="hint">splits</span></div>
@@ -1497,7 +1498,6 @@
         </div>
       </div>
       <div id="shotProfile"></div>
-      <div id="recentForm"></div>
       <div class="ad-inline"><span class="lbl">Advertisement</span><div class="slot">Ad · 728×90</div></div>
       ${salRows && salRows.length ? `<div class="section-title" id="sec-salary" style="margin-top:26px"><h2>Contracts &amp; salary</h2><a class="link" href="#/salaries">Salary hub →</a></div>
         <div class="col2grid">
@@ -1839,7 +1839,13 @@
     const nameSpan = {};
     seasons.forEach((s) => { const nm = s.nm || t.name; (nameSpan[nm] = nameSpan[nm] || []).push(s.season); });
     const eras = Object.entries(nameSpan).map(([nm, ys]) => ({ nm, lo: Math.min(...ys), hi: Math.max(...ys) })).sort((a, b) => a.lo - b.lo);
-    const eraLine = eras.map((e) => `${esc(e.nm)} <span class="muted">${seasonLabel(e.lo)}${e.hi >= META.current ? "–present" : "–" + seasonLabel(e.hi)}</span>`).join(" · ");
+    // One row per name. Season labels are themselves hyphenated ("1967-68"), so a
+    // bare "1967-68–1972-73" reads as one long number — space the range, keep each
+    // end unbreakable, and collapse a single-season era to just that season.
+    const eraSpan = (e) => e.hi >= META.current ? `${seasonLabel(e.lo)} – present`
+      : e.lo === e.hi ? seasonLabel(e.lo)
+      : `${seasonLabel(e.lo)} – ${seasonLabel(e.hi)}`;
+    const eraLine = eras.map((e) => `<li><span class="fh-nm">${esc(e.nm)}</span><span class="fh-yr">${eraSpan(e).replace(/(\d{4}-\d{2}|present)/g, "<span class=nb>$1</span>")}</span></li>`).join("");
     const tiles = [
       ["Seasons", seasons.length],
       ["NBA titles", titles],
@@ -1884,7 +1890,7 @@
             <a class="btn-mini" href="#/team/${ab}/${latestSeason}">${seasonLabel(latestSeason)} season →</a></div>
         </div>
       </div>
-      ${eras.length ? `<p class="fh-names"><span class="k">Franchise names</span> ${eraLine}</p>` : ""}
+      ${eras.length > 1 ? `<div class="fh-names"><span class="eyebrow">Franchise names</span><ul>${eraLine}</ul></div>` : ""}
       <div class="tilerow">${tiles.map(([k, v]) => `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("")}</div>
       <div class="section-title" style="margin-top:24px"><div><span class="eyebrow">Every season · click a row to open it</span><h2>Franchise history</h2></div>${bestW >= 0 ? `<span class="eyebrow">Best: ${bestW} wins</span>` : ""}</div>
       <div class="card"><div class="tbl-wrap"><table class="ref" style="min-width:560px">
@@ -2242,6 +2248,8 @@
   }
   const ptCol = (k) => PT.cfg.cols.find((c) => c.k === k);
   const ptGet = (c, r) => (c.getv ? c.getv(r) : r[c.k]);
+  // every school a player attended, earliest first (single-school players have no .cols)
+  const ptColleges = (r) => r.cols || (r.col ? [r.col] : []);
 
   function ptCell(c, r) {
     if (c.cell) return c.cell(r);
@@ -2457,12 +2465,32 @@
   }
 
   // ---- filter menu / editors (a single floating panel) ----
-  function ptClosePanel() { const p = $("#ptPanel"); if (p) p.remove(); document.removeEventListener("click", ptOutside, true); document.removeEventListener("keydown", ptPanelKey, true); }
+  // Below this width the anchored popover is the wrong shape — it ends up ~220px
+  // wide against a 375px screen with a cramped, hard-to-hit option list. Render a
+  // bottom sheet instead: full width, thumb-reachable, with a pinned Apply bar.
+  const ptIsSheet = () => window.matchMedia("(max-width:640px)").matches;
+  function ptClosePanel() {
+    const p = $("#ptPanel"); if (p) p.remove();
+    const b = $("#ptPanelBd"); if (b) b.remove();
+    document.body.classList.remove("pt-sheet-open");
+    document.removeEventListener("click", ptOutside, true); document.removeEventListener("keydown", ptPanelKey, true);
+  }
   function ptOutside(e) { const p = $("#ptPanel"); if (p && !p.contains(e.target) && !e.target.closest("#ptAdd,#ptCols,.pt-pill")) ptClosePanel(); }
   function ptPanelKey(e) { if (e.key === "Escape") { e.stopPropagation(); ptClosePanel(); } }
   function ptPanel(anchor, html) {
     ptClosePanel();
     const p = document.createElement("div"); p.id = "ptPanel"; p.className = "pt-panel"; p.innerHTML = html;
+    if (ptIsSheet()) {
+      p.classList.add("pt-sheet");
+      p.insertAdjacentHTML("afterbegin", '<div class="pt-grab" aria-hidden="true"></div>');
+      const bd = document.createElement("div"); bd.id = "ptPanelBd"; bd.className = "pt-bd";
+      bd.addEventListener("click", ptClosePanel);
+      document.body.appendChild(bd);
+      document.body.classList.add("pt-sheet-open");   // lock the page behind the sheet
+      document.body.appendChild(p);
+      setTimeout(() => { document.addEventListener("keydown", ptPanelKey, true); }, 0);
+      return p;
+    }
     document.body.appendChild(p);
     const rc = anchor.getBoundingClientRect();
     // clamp within the viewport on both axes (mobile: keep the panel on-screen and scrollable)
@@ -2487,7 +2515,7 @@
     const wire = () => $$(".pt-mi", p).forEach((b) => b.addEventListener("click", () => ptOpenEditor(ptCol(b.dataset.k), -1, anchor)));
     wire();
     const s = $("#ptMenuSearch", p);
-    if (s) { s.addEventListener("input", () => { $("#ptMenuList", p).innerHTML = list(s.value.toLowerCase().trim()); wire(); }); s.focus(); }
+    if (s) { s.addEventListener("input", () => { $("#ptMenuList", p).innerHTML = list(s.value.toLowerCase().trim()); wire(); }); if (!ptIsSheet()) s.focus(); }
     ptMenuKeys(p, s);   // arrow-key navigation + enter
   }
   // keyboard nav for a menu of .pt-mi buttons; `input` (optional) is the search field
@@ -2526,7 +2554,7 @@
       $("#ptApply", p).addEventListener("click", () => {
         const vals = $$("#ptOpts input:checked", p).map((i) => i.value);
         ptCommit(editIdx, vals.length ? { k: c.k, op: "in", vals } : null); });
-      if (os) os.focus();
+      if (os && !ptIsSheet()) os.focus();   // autofocus would raise the keyboard over the sheet
     } else if (c.type === "bool") {
       const cur = existing ? existing.vals[0] : 1;
       body = `<div class="pt-panel-h">${esc(c.label)}</div><div class="pt-menu">
@@ -2644,7 +2672,7 @@
   const PLAYERS_CFG = {
     key: "players", noun: "player", nounPl: "players", tiebreak: "n", minWidth: 920, defaultSort: { k: "pts", dir: -1 },
     searchPlaceholder: "Search name or team…",
-    search: (r, q) => (r.n || "").toLowerCase().includes(q) || (r.t || "").toLowerCase().includes(q) || (r.col || "").toLowerCase().includes(q),
+    search: (r, q) => (r.n || "").toLowerCase().includes(q) || (r.t || "").toLowerCase().includes(q) || ptColleges(r).some((c) => c.toLowerCase().includes(q)),
     link: (r) => `#/player/${r.i}`,
     cols: [
       { k: "n", label: "Player", type: "text", col: true, cls: "l grow", cell: (r) => `<span class="who">${headshot(r.i, r.n, r.t, "xs")}<a href="#/player/${r.i}">${esc(r.n)}</a></span>` },
@@ -2655,7 +2683,13 @@
       { k: "e", label: "Final year", type: "num" },
       { k: "act", label: "Status", type: "bool", boolLabels: ["Active", "Retired"] },
       { k: "hof", label: "Hall of Fame", type: "bool", boolLabels: ["Yes", "No"] },
-      { k: "col", label: "College", type: "enum" },
+      // r.col is the school they left for the NBA; transfers also carry r.cols with
+      // every school attended. Filter matches ANY of them, so picking "Kentucky"
+      // finds players who passed through Kentucky, not just those drafted from it.
+      { k: "col", label: "College", type: "enum",
+        opts: () => { const s = new Set(); for (const r of PT.data) for (const c of ptColleges(r)) s.add(c); return [...s].sort((a, b) => a.localeCompare(b, undefined, { numeric: true })); },
+        match: (r, f) => ptColleges(r).some((c) => f.vals.includes(c)),
+        cell: (r) => r.col ? (r.cols ? `<span title="${esc(r.cols.join(" → "))}">${esc(r.col)}<span class="col-more"> +${r.cols.length - 1}</span></span>` : esc(r.col)) : "—" },
       { k: "ht", label: "Height", type: "num", unit: '"', hint: "inches" },
       { k: "g", label: "Games", type: "num", col: true, th: "G" },
       { k: "pts", label: "Points / g", type: "num", col: true, th: "PPG", hi: true },
@@ -3116,6 +3150,7 @@
 
   async function route() {
     navProg.start();
+    ptClosePanel();   // a filter sheet left open would survive the route change and cover the new view
     const raw = location.hash.replace(/^#\/?/, ""), qi = raw.indexOf("?");
     const h = qi < 0 ? raw : raw.slice(0, qi), parts = h.split("/"), seg = parts[0], arg = parts[1];
     // filter-table state travels in a ?v= query param so filtered views are shareable/bookmarkable

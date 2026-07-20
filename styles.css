@@ -238,8 +238,19 @@ table.ref .season{font-weight:600;color:var(--ink)}
 .champ-badge{flex:none;font-family:var(--mono);font-size:9px;letter-spacing:.05em;text-transform:uppercase;font-weight:600;color:var(--accent-deep);background:var(--accent-wash);border:1px solid var(--accent-soft);border-radius:5px;padding:1px 5px}
 .titles-cell{font-weight:700;color:var(--accent-deep)}
 /* franchise hub: era-grouped history table + past-names line */
-.fh-names{margin:14px 0 0;font-size:13.5px;color:var(--ink-2);line-height:1.7}
-.fh-names .k{font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);margin-right:8px}
+/* franchise name history — one row per era. The label used to sit inline with the
+   names, so a multi-era club (Chaparrals -> Spurs) wrapped into an unreadable run
+   of hyphenated season pairs. */
+.fh-names{margin:16px 0 0}
+.fh-names ul{list-style:none;margin:7px 0 0;padding:0;display:flex;flex-direction:column;gap:2px}
+.fh-names li{display:flex;align-items:baseline;gap:10px;font-size:13.5px;line-height:1.55}
+.fh-nm{color:var(--ink);font-weight:550}
+.fh-yr{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);white-space:nowrap}
+.fh-yr .nb{white-space:nowrap}
+@media (max-width:520px){
+  .fh-names li{flex-direction:column;gap:1px}
+  .fh-yr{font-size:11px}
+}
 tr.fh-era td{background:var(--wash,rgba(128,128,128,.05));border-top:1px solid var(--line);padding-top:10px}
 .fh-era-nm{font-weight:700;color:var(--ink);font-size:13.5px}
 .fh-era-yr{font-family:var(--mono);font-size:11px;color:var(--ink-3);margin-left:10px}
@@ -281,6 +292,8 @@ table.ref tbody tr.sal-sub .tm-tag,table.ref tbody tr.sal-sub td:nth-child(2){op
   table.ref th:first-child,table.ref td:first-child{max-width:42vw}
   table.ref .who a,table.ref .who .nm{font-family:var(--sans);font-size:13.5px;font-weight:600;letter-spacing:-.01em}
 }
+/* transfer count beside a player's final school ("Kansas State +1") */
+.col-more{font-family:var(--mono);font-size:10.5px;color:var(--ink-4);margin-left:4px}
 .tm-tag{display:inline-flex;align-items:center;gap:6px}
 .tm-tag .b{width:7px;height:14px;border-radius:2px;flex:none}
 
@@ -1286,6 +1299,35 @@ table.ref tr.benchsep td{border-top:1px solid var(--line-strong)}
 .pt-search{width:100%;height:34px;margin:2px 0 6px;padding:0 11px;border:1px solid var(--line-strong);border-radius:8px;background:var(--bg);color:var(--ink);font-size:13px}
 .pt-search:focus{outline:none;border-color:var(--accent);box-shadow:var(--pt-ring)}
 .pt-quick{display:flex;gap:6px;padding:0 6px 6px}
+
+/* ---- mobile: the filter/column popover becomes a bottom sheet ----
+   An anchored popover is the wrong shape on a phone (~220px of a 375px screen,
+   cramped rows, Apply scrolled out of reach). Same markup, different container:
+   full-width, thumb-reachable, with the option list as the only scrolling part
+   so the header and Apply bar stay put. */
+.pt-bd{position:fixed;inset:0;z-index:119;background:rgba(0,0,0,.34);animation:pt-fade .16s ease both}
+@keyframes pt-fade{from{opacity:0}to{opacity:1}}
+body.pt-sheet-open{overflow:hidden}
+.pt-panel.pt-sheet{
+  position:fixed;inset:auto 0 0 0;z-index:120;
+  min-width:0;max-width:none!important;width:100%;
+  max-height:85dvh;display:flex;flex-direction:column;
+  border-radius:18px 18px 0 0;border-width:1px 0 0;
+  padding:0 10px calc(10px + env(safe-area-inset-bottom));
+  animation:pt-sheet-up .2s cubic-bezier(.2,.7,.3,1)}
+@keyframes pt-sheet-up{from{transform:translateY(14px)}to{transform:none}}
+.pt-grab{flex:none;width:38px;height:4px;margin:8px auto 4px;border-radius:2px;background:var(--line-strong)}
+.pt-sheet .pt-panel-h{flex:none;font-size:11px;padding:4px 6px 8px}
+.pt-sheet .pt-search{flex:none;height:42px;font-size:16px}   /* 16px: iOS zooms the page on smaller */
+.pt-sheet .pt-quick{flex:none}
+/* the list is the only scroller, so Apply never scrolls away */
+.pt-sheet .pt-opts,.pt-sheet .pt-menu{flex:1 1 auto;max-height:none;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.pt-sheet .pt-opt,.pt-sheet .pt-mi{min-height:46px;font-size:15px;padding:10px 12px}   /* comfortable tap targets */
+.pt-sheet .pt-opt .pt-opt-ck{width:21px;height:21px}
+.pt-sheet .pt-actions{flex:none;padding:9px 2px calc(4px + env(safe-area-inset-bottom));
+  border-top:1px solid var(--line);background:var(--panel)}
+.pt-sheet .pt-apply{width:100%;height:46px;font-size:15px}
+.pt-sheet .pt-actions-row .pt-apply{width:auto;min-width:120px}
 .pt-quick .pt-mini-link{padding:2px 8px;border-radius:6px;background:var(--panel-2)}
 .pt-opts{display:flex;flex-direction:column;max-height:min(48vh,280px);overflow:auto;gap:1px}
 .pt-opt{display:flex;align-items:center;gap:9px;padding:8px;border-radius:7px;font-size:13.5px;cursor:pointer;user-select:none}

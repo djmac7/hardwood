@@ -20,6 +20,9 @@ Run:  python3 build/build_seo.py            (from the project root)
 Set the canonical host:  SITE_URL=https://yourdomain.com python3 build/build_seo.py
 """
 import json, os, sys, html
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from normalize_colleges import normalize as normalize_college
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -432,7 +435,10 @@ def render_player(p):
     if b.get("born"):
         ag = _age(b["born"])
         facts.append(("Born", esc(b["born"]) + (f" (age {ag})" if ag is not None and active else "")))
-    if b.get("college"): facts.append(("College", esc(b["college"])))
+    _cprim, _call = normalize_college(b.get("college"))
+    # transfers read as the full path ("Vincennes -> UNC"); alumniOf below stays
+    # the single school they left for the NBA
+    if _cprim: facts.append(("College", esc(" → ".join(_call))))
     if b.get("highSchool"): facts.append(("High school", esc(b["highSchool"])))
     if dr and dr[0]:
         dy, drnd, dov, dtm = dr
@@ -497,7 +503,7 @@ def render_player(p):
     if b.get("ht"): ld["height"] = b["ht"]
     if b.get("wt"): ld["weight"] = f"{b['wt']} lb"
     if b.get("born"): ld["birthDate"] = b["born"]
-    if b.get("college"): ld["alumniOf"] = b["college"]
+    if _cprim: ld["alumniOf"] = _cprim
     if is_real_team(team): ld["affiliation"] = {"@type": "SportsTeam", "name": tname(team), "sport": "Basketball"}
 
     crumb_ld = {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [
