@@ -41,7 +41,7 @@ a{color:inherit;text-decoration:none}
 /* visually-hidden (screen-reader only) — used for the per-view <h1> and helper labels */
 .vh{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0}
 /* skip-to-content link: off-screen until keyboard-focused */
-.skip{position:fixed;top:8px;left:8px;z-index:200;background:var(--accent);color:#fff;padding:9px 14px;border-radius:8px;font-weight:600;font-size:14px;transform:translateY(-150%);transition:transform .15s}
+.skip{position:fixed;top:8px;left:8px;z-index:200;background:var(--accent-fill);color:var(--on-accent);padding:9px 14px;border-radius:8px;font-weight:600;font-size:14px;transform:translateY(-150%);transition:transform .15s}
 .skip:focus{transform:none}
 input:focus-visible,select:focus-visible,.search input:focus-visible{outline:none}
 table.ref tbody tr.clickable:focus-visible{outline-offset:-2px}
@@ -308,7 +308,7 @@ table.ref tbody tr.sal-sub .tm-tag,table.ref tbody tr.sal-sub td:nth-child(2){op
 .rank .who .nm:hover{color:var(--accent-deep)}
 .rank .who .tm{font-family:var(--mono);font-size:11px;color:var(--ink-3);flex:none}
 .rank .val{font-family:var(--mono);font-weight:600;font-size:15px;font-variant-numeric:tabular-nums}
-.rank li.top .rk{color:var(--accent);font-weight:600}
+.rank li.top .rk{color:var(--accent-deep);font-weight:600}
 .rank .val .mini{display:inline-block;width:54px;height:6px;border-radius:4px;background:var(--bg-sunk);margin-right:9px;vertical-align:middle;overflow:hidden}
 .rank .val .mini i{display:block;height:100%;background:linear-gradient(90deg,var(--accent-deep),var(--accent));border-radius:4px;transform-origin:left;animation:bar-grow .62s cubic-bezier(.22,1,.36,1) both}
 /* one magnitude-bar language: a subtle deep→accent gradient fill on a recessed rail, that
@@ -798,7 +798,7 @@ footer .disc{font-family:var(--mono);font-size:11px;color:var(--ink-3);margin-to
 /* traded-season stint rows (Basketball-Reference style) */
 table.ref tr.stint td{color:var(--ink-3);font-size:12.5px;border-bottom:1px solid var(--line-soft)}
 table.ref tr.stint td.l:nth-child(2){padding-left:16px}
-table.ref tr.stint td.hi{color:var(--accent);font-weight:500}
+table.ref tr.stint td.hi{color:var(--accent-deep);font-weight:500}
 table.ref tr.stint .tm-tag{opacity:.85}
 table.ref tr:not(.stint) td.season{padding-top:11px}
 
@@ -1267,14 +1267,14 @@ table.ref tr.benchsep td{border-top:1px solid var(--line-strong)}
 .pt-add:hover{color:var(--ink);border-color:var(--accent);background:var(--accent-wash)}
 .pt-add:focus-visible{outline:none;border-color:var(--accent);box-shadow:var(--pt-ring)}
 .pt-add.on{border-style:solid;border-color:var(--accent-soft);color:var(--ink);background:var(--accent-wash)}
-.pt-add-badge{display:inline-grid;place-items:center;min-width:17px;height:17px;padding:0 4px;margin-left:1px;border-radius:9px;background:var(--accent);color:#fff;font-family:var(--mono);font-size:10.5px;font-weight:600;line-height:1}
+.pt-add-badge{display:inline-grid;place-items:center;min-width:17px;height:17px;padding:0 4px;margin-left:1px;border-radius:9px;background:var(--accent-fill);color:var(--on-accent);font-family:var(--mono);font-size:10.5px;font-weight:600;line-height:1}
 .pt-add-badge[hidden]{display:none}
 .pt-pills{display:flex;flex-wrap:wrap;gap:7px;flex:1 1 auto;min-width:0}
 .pt-pill{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 5px 0 11px;border:1px solid var(--accent-soft);border-radius:8px;background:var(--accent-wash);color:var(--ink);font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;transition:border-color .12s,background .12s}
 .pt-pill:hover{border-color:var(--accent)}
 .pt-pill:focus-visible{outline:none;box-shadow:var(--pt-ring)}
 .pt-pill .x{display:grid;place-items:center;width:19px;height:19px;border-radius:5px;color:var(--ink-3);transition:.12s}
-.pt-pill .x:hover{background:var(--accent);color:#fff}
+.pt-pill .x:hover{background:var(--accent-fill);color:var(--on-accent)}
 .pt-reset{height:32px;padding:0 10px;border:0;background:transparent;color:var(--ink-3);font-size:13px;cursor:pointer;border-radius:7px}
 .pt-reset:hover{color:var(--accent-deep);background:var(--accent-wash)}
 .pt-share{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 11px;border:1px solid var(--line-strong);border-radius:8px;background:var(--panel);color:var(--ink-2);font-size:13px;font-weight:500;cursor:pointer;transition:.15s;white-space:nowrap}
@@ -1334,7 +1334,7 @@ body.pt-sheet-open{overflow:hidden}
 .pt-opt:hover{background:var(--panel-2)}
 .pt-opt input{position:absolute;opacity:0;pointer-events:none}
 .pt-opt-l{display:inline-flex;align-items:center;gap:7px;flex:1;min-width:0}
-.pt-opt .pt-opt-ck{color:#fff;opacity:0;flex:none;background:var(--accent);border-radius:5px;padding:2px;width:17px;height:17px;box-sizing:border-box}
+.pt-opt .pt-opt-ck{color:var(--on-accent);opacity:0;flex:none;background:var(--accent-fill);border-radius:5px;padding:2px;width:17px;height:17px;box-sizing:border-box}
 .pt-opt input:not(:checked)~.pt-opt-ck{background:transparent;border:1.5px solid var(--line-strong);opacity:.9;color:transparent}
 .pt-opt input:checked~.pt-opt-ck{opacity:1}
 .pt-opt input:focus-visible~.pt-opt-ck{box-shadow:var(--pt-ring)}
@@ -1349,8 +1349,8 @@ body.pt-sheet-open{overflow:hidden}
 .pt-and{color:var(--ink-3);font-size:12px;min-width:30px}
 .pt-hint{color:var(--ink-4);font-size:11px;font-family:var(--mono);letter-spacing:.02em}
 .pt-actions{padding:7px 4px 2px}
-.pt-apply{width:100%;height:35px;border:0;border-radius:8px;background:var(--accent);color:#fff;font-weight:600;font-size:13.5px;cursor:pointer;transition:background .15s}
-.pt-apply:hover{background:var(--accent-deep)}
+.pt-apply{width:100%;height:35px;border:0;border-radius:8px;background:var(--accent-fill);color:var(--on-accent);font-weight:600;font-size:13.5px;cursor:pointer;transition:background .15s}
+.pt-apply:hover{background:var(--accent)}
 .pt-apply:focus-visible{outline:none;box-shadow:var(--pt-ring)}
 .pt-actions-row{display:flex;align-items:center;gap:8px}
 .pt-apply-sm{width:auto;flex:1}
@@ -1628,8 +1628,8 @@ body.pt-sheet-open{overflow:hidden}
 /* ============================================================
    Play — Daily NBA Grid archive/win, Stat Duel, Buzzer Beater
    ============================================================ */
-.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
-.btn.primary:hover{background:var(--accent-deep);border-color:var(--accent-deep);color:#fff}
+.btn.primary{background:var(--accent-fill);border-color:var(--accent-fill);color:var(--on-accent);font-weight:600}
+.btn.primary:hover{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
 
 /* grid corner mark (was an emoji) + scoreline */
 .gg-corner{opacity:1}
@@ -1645,7 +1645,7 @@ body.pt-sheet-open{overflow:hidden}
   transform:translateY(10px) scale(.97);transition:transform .24s cubic-bezier(.2,.9,.3,1.2)}
 .gg-win.show .gg-win-card{transform:none}
 .gg-win-badge{width:64px;height:64px;margin:0 auto 16px;border-radius:50%;display:grid;place-items:center;
-  color:#fff;background:var(--accent);box-shadow:0 0 0 8px var(--accent-wash)}
+  color:var(--on-accent);background:var(--accent-fill);box-shadow:0 0 0 8px var(--accent-wash)}
 .gg-win-badge svg{width:32px;height:32px}
 .gg-win-card h2{font-size:28px;margin:6px 0 8px}
 .gg-win-card p{color:var(--ink-2);font-size:14.5px;line-height:1.55;margin:0 auto 20px;max-width:34ch}
