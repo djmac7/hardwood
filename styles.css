@@ -273,7 +273,12 @@ table.ref tbody tr.sal-sub .tm-tag,table.ref tbody tr.sal-sub td:nth-child(2){op
   table.ref th,table.ref td{padding:8px 10px}
   table.ref td{font-size:12.5px}
   table.ref th{font-size:9.5px}
-  table.ref .who{max-width:56vw}   /* the (sticky) first column is the row's identity — give names room */
+  /* the (sticky) first column is the row's identity, but it must not eat the viewport —
+     past ~40vw the stat columns it's meant to sit beside are pushed off-screen entirely.
+     Cap the cell too: .grow absorbs slack whenever the table is narrower than the wrapper
+     (few visible columns, or a filtered view), which is how it reached ~90vw on phones. */
+  table.ref .who{max-width:40vw}
+  table.ref th:first-child,table.ref td:first-child{max-width:42vw}
   table.ref .who a,table.ref .who .nm{font-family:var(--sans);font-size:13.5px;font-weight:600;letter-spacing:-.01em}
 }
 .tm-tag{display:inline-flex;align-items:center;gap:6px}
@@ -1381,11 +1386,6 @@ table.ref tr.benchsep td{border-top:1px solid var(--line-strong)}
 }
 
 /* offseason recap strip on the home page */
-.off-recap{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:20px;border-left:3px solid var(--tc)}
-.off-recap .off-l h3{font-size:20px;display:flex;align-items:center;gap:9px;margin-top:4px}
-.off-links{display:flex;flex-wrap:wrap;gap:18px}
-.off-links a{white-space:nowrap}
-@media (max-width:640px){.off-recap{gap:12px}.off-recap .off-l h3{font-size:18px}}
 .foot-legal a:hover{color:var(--accent-deep)}
 @media (max-width:560px){.set-row{flex-direction:column;align-items:flex-start;gap:12px}}
 

@@ -378,7 +378,6 @@
     const cur = META.current;
     const [S, news, gidx] = await Promise.all([getSeason(cur), getNews().catch(() => null), getGamesIdx(cur).catch(() => null)]);
     const st = S.standings, top = st[0], L = S.leaders;
-    const champAb = S.champion && S.champion.team;
     const featIds = (L.pts || []).slice(0, 6).map((r) => r[0]);
     const recent = gidx && gidx.games ? gidx.games.slice(-5).reverse() : [];
     // Offseason (no games for >10 days): surface evergreen postseason content up top so the
@@ -409,18 +408,6 @@
     </section>
 
     <div class="wrap">
-      ${offseason && champAb ? `<section class="reveal off-recap card big pad" style="--tc:${tColor(champAb)}">
-        <div class="off-l">
-          <span class="eyebrow">${seasonLabel(cur)} · season complete</span>
-          <h3>${teamLogo(champAb, "sm")} <a href="#/team/${champAb}">${esc(tName(champAb))}</a> — champions</h3>
-          ${S.champion && S.champion.fmvp ? `<p class="muted" style="margin-top:4px">Finals MVP · <a href="#/player/${S.champion.fmvp_id}" style="color:var(--accent-deep)">${esc(S.champion.fmvp)}</a></p>` : ""}
-        </div>
-        <div class="off-links">
-          <a class="link" href="#/bracket/${cur}">Playoff bracket →</a>
-          <a class="link" href="#/season/${cur}">Season in review →</a>
-          <a class="link" href="#/leaders/all">All-time leaders →</a>
-        </div>
-      </section>` : ""}
       ${recent.length ? `<section class="reveal home-scores">
         <div class="section-title small"><h2>${offseason ? "Final games" : "Recent scores"}</h2><a class="link" href="#/games">All scores →</a></div>
         <div class="mfeed home-mfeed">${recent.map(matchRow).join("")}</div>
@@ -2641,7 +2628,7 @@
   // Column show/hide panel — toggles which fields appear, persists per table, reflects in the URL.
   function ptOpenCols(anchor) {
     const cfg = PT.cfg;
-    const row = (c) => `<label class="pt-opt"><input type="checkbox" value="${c.k}" ${PT.visCols.includes(c.k) ? "checked" : ""}>${esc(c.label)}</label>`;
+    const row = (c) => `<label class="pt-opt"><input type="checkbox" value="${c.k}" ${PT.visCols.includes(c.k) ? "checked" : ""}><span class="pt-opt-l">${esc(c.label)}</span><svg class="pt-opt-ck" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></label>`;
     const body = `<div class="pt-panel-h">Show columns</div><div class="pt-opts" id="ptColOpts">${cfg.cols.map(row).join("")}</div>
       <div class="pt-actions pt-actions-row"><button class="pt-mini-link" id="ptColReset" type="button">Reset to default</button><button class="pt-apply pt-apply-sm" id="ptColApply">Done</button></div>`;
     const p = ptPanel(anchor, body);
