@@ -1081,22 +1081,20 @@
     idxs.forEach((idx) => { if (idx && idx.games) idx.games.forEach((g) => { byId[String(g.id)] = g; }); });
     const games = pg.map((r) => byId[String(r.id)]).filter(Boolean)
       .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
-    const byDate = [], seen = {};
-    for (const g of games) { if (!seen[g.date]) { seen[g.date] = []; byDate.push([g.date, seen[g.date]]); } seen[g.date].push(g); }
-    const dayHtml = ([date, gs2]) => `<div class="gday"><h3 class="gday-h">${fmtDate(date, true)}<span class="gday-n">${gs2.length} game${gs2.length > 1 ? "s" : ""}</span></h3>
-      <div class="mfeed">${gs2.map(matchRow).join("")}</div></div>`;
     const span = games.length ? (() => { const a = seasonOf(games[games.length - 1].date), b = seasonOf(games[0].date); return a === b ? seasonLabel(a) : `${seasonLabel(a)} – ${seasonLabel(b)}`; })() : "";
     setSEO(`${p.name} — Game Log & Scores`, `Every recent game ${p.name} appeared in: final scores, competitiveness and box-score links.`);
-    app.innerHTML = `<div class="wrap page">
+    // Same filter/sort/column table as #/games, just seeded with this player's games
+    // instead of one season's. Kept multi-season because that's the coverage the
+    // player feed always had — #/games itself is scoped to a single season.
+    app.innerHTML = `<div class="wrap page pt-page">
       <div class="crumb"><a href="#/">Home</a><span class="sep">/</span><a href="#/games">Scores</a><span class="sep">/</span><span>${esc(p.name)}</span></div>
       <div class="section-title"><div><span class="eyebrow">${games.length} game${games.length === 1 ? "" : "s"}${span ? " · " + span : ""}</span><h2>${esc(p.name)} · Games</h2></div>
         <a class="link" href="#/player/${pid}">Player page →</a></div>
-      <div class="pg-filter">${headshot(p.id, p.name, p.cur.team, "xs")}<span>Filtered to games <b>${esc(p.name)}</b> appeared in</span><a class="link" href="#/games">Clear filter ✕</a></div>
-      ${games.length ? `<div class="slate-legend"><span class="ll">Game quality</span><span><i class="lg clutch"></i>Clutch ≤3</span><span><i class="lg close"></i>Close ≤8</span><span><i class="lg blowout"></i>Blowout ≥20</span></div>
-      <div id="gmFeed">${byDate.map(dayHtml).join("")}</div>
-      <p class="news-foot" style="margin:14px 0 0">Showing ${p.name}'s ${pg.length} most recent stored games. <a class="link" href="#/games">View the full league scores →</a></p>`
+      <div class="pg-filter">${headshot(p.id, p.name, p.cur.team, "xs")}<span>Filtered to games <b>${esc(p.name)}</b> appeared in</span><a class="link" href="#/games">All league games ✕</a></div>
+      ${games.length ? `<div id="ptHost"></div>`
         : `<p class="muted" style="margin-top:20px">No game-level data on record for ${esc(p.name)}.</p>`}
     </div>`;
+    if (games.length) ptMount($("#ptHost"), GAMES_CFG, games);
   }
 
   async function renderGame(id) {
