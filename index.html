@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Dunkwise — NBA Stats &amp; History, Beautifully Legible</title>
 <meta name="description" content="A modern NBA reference — every player and team, all-time leaders and standings from 1947 to today, designed for readability." />
-<meta name="theme-color" content="#faf9f5" media="(prefers-color-scheme: light)" />
-<meta name="theme-color" content="#1f1e1c" media="(prefers-color-scheme: dark)" />
+<meta name="theme-color" content="#fbf9f4" media="(prefers-color-scheme: light)" />
+<meta name="theme-color" content="#201e1b" media="(prefers-color-scheme: dark)" />
 <!-- Social / Open Graph defaults (per-route values are updated at runtime by app.js:setSEO) -->
 <meta property="og:site_name" content="Dunkwise" />
 <meta property="og:type" content="website" />
@@ -25,12 +25,12 @@
 <link rel="preconnect" href="https://a.espncdn.com" />
 <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400..800&family=Geist+Mono:wght@400..600&display=swap" rel="stylesheet" />
 <!-- Shared design tokens (source of truth: ../dunkwise-ds/tokens.css). Must load before styles.css. -->
-<link rel="stylesheet" href="ds/tokens.css" />
+<link rel="stylesheet" href="ds/tokens.css?v=140" />
 <!-- apply saved appearance before first paint (no flash of wrong theme) -->
 <script>try{var t=localStorage.getItem('hw-theme');if(t&&t!=='system')document.documentElement.setAttribute('data-theme',t);if(localStorage.getItem('hw-density')==='compact')document.documentElement.setAttribute('data-density','compact');}catch(e){}</script>
-<link rel="stylesheet" href="styles.css?v=139" />
+<link rel="stylesheet" href="styles.css?v=140" />
 <!-- start the app bundle downloading during head parse, before the body script tag -->
-<link rel="preload" as="script" href="app.js?v=139" />
+<link rel="preload" as="script" href="app.js?v=140" />
 </head>
 <body>
 <a href="#app" class="skip">Skip to content</a>
@@ -163,6 +163,6 @@
   <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V6M6 12l6-6 6 6"/></svg>
 </button>
 
-<script src="app.js?v=139"></script>
+<script src="app.js?v=140"></script>
 </body>
 </html>

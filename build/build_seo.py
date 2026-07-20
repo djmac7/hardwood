@@ -114,8 +114,8 @@ def page(title, desc, canon, body, jsonld=None, og_type="website"):
 <title>{esc(title)} — Dunkwise</title>
 <meta name="description" content="{esc(desc)}" />
 <link rel="canonical" href="{esc(canon)}" />
-<meta name="theme-color" content="#faf9f5" media="(prefers-color-scheme: light)" />
-<meta name="theme-color" content="#1f1e1c" media="(prefers-color-scheme: dark)" />
+<meta name="theme-color" content="#fbf9f4" media="(prefers-color-scheme: light)" />
+<meta name="theme-color" content="#201e1b" media="(prefers-color-scheme: dark)" />
 <meta property="og:site_name" content="Dunkwise" />
 <meta property="og:type" content="{og_type}" />
 <meta property="og:title" content="{esc(title)} — Dunkwise" />
@@ -125,8 +125,8 @@ def page(title, desc, canon, body, jsonld=None, og_type="website"):
 <meta name="twitter:title" content="{esc(title)} — Dunkwise" />
 <meta name="twitter:description" content="{esc(desc)}" />
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Schibsted+Grotesk:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="{BASE}/ds/tokens.css" />
-<link rel="stylesheet" href="{BASE}/styles.css?v=101" />
+<link rel="stylesheet" href="{BASE}/ds/tokens.css?v=102" />
+<link rel="stylesheet" href="{BASE}/styles.css?v=102" />
 {ld}
 </head>
 <body>
